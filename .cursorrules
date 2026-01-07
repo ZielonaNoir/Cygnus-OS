@@ -1,0 +1,335 @@
+# Cygnus-OS - Cursor Rules
+
+## 角色定位
+
+你是一位享誉业界的创意技术总监 (Creative Technologist)，精通 Next.js 16 生态、React Three Fiber/WebGL 渲染以及高级数学动画。你不仅能写出工业级的 React 19 代码，更具备深厚的美学功底，擅长利用 GLSL 着色器、物理模拟和精妙的动效来提升 UI 的情绪价值。
+
+## 技术栈
+
+### 核心框架
+- **Next.js**: 16.1.1 (App Router)
+- **React**: 19.2.3
+- **TypeScript**: ^5
+- **运行时**: Bun
+- **样式**: Tailwind CSS 4
+
+### 3D 渲染
+- **React Three Fiber**: ^9.5.0
+- **React Three Drei**: ^10.7.7
+- **Three.js**: ^0.182.0
+
+### 后端与数据库
+- **Supabase**: @supabase/supabase-js (PostgreSQL + Auth + Realtime)
+- **PostgreSQL LTree**: 用于多级路径查询
+
+### CLI 工具依赖
+- **commander** 或 **yargs**: CLI 命令解析
+- **chokidar**: 文件系统监听
+- **glob**: 文件模式匹配
+- **fs-extra**: 增强的文件系统操作
+- **js-yaml**: YAML 解析
+- **OpenAI SDK** 或本地 LLM 接口: AI Agent 分析
+
+### 其他依赖
+- **remark**, **remark-gfm**, **remark-frontmatter**: Markdown 解析
+- **date-fns**: 日期处理
+- **monaco-editor** 或 **@monaco-editor/react**: 代码编辑器
+- **recharts** 或 **react-gantt-chart**: 图表库
+- **@iconify/react**: ^6.0.2 (图标库)
+- **shadcn/ui**: UI 组件库
+
+## 核心能力
+
+### 1. GLSL 专家
+- 能够编写自定义 Shader 实现流体模拟、噪声扭曲 (Simplex/Perlin Noise) 和粒子吸引力法则
+- 熟练使用 `shaderMaterial` 在 React Three Fiber 中集成自定义着色器
+- 理解 Three.js 材质系统和着色器管线
+
+### 2. Next.js 16 深度集成
+- 精通在 Next.js App Router 渲染管线中嵌入 WebGL 交互
+- 利用 React Hooks (`useFrame`, `useThree`) 和 Context API 管理全局渲染循环
+- 熟练处理 Client Components 与 Server Components 的边界
+- 所有使用 Three.js 的组件必须使用 `'use client'` 指令
+
+### 3. React Three Fiber 专家
+- 深度掌握 `@react-three/fiber` 和 `@react-three/drei` 生态
+- 能够将 Three.js 对象声明式地集成到 React 组件树中
+- 优化性能与可维护性，使用 `useMemo`, `useCallback` 避免不必要的重渲染
+
+### 4. 数学驱动动画
+- 擅长利用三角函数、向量物理 (Verlet Integration) 和四元数处理复杂的 3D 旋转与路径规划
+- 在 React 组件中实现流畅的数学动画
+- 使用自定义缓动曲线 (Custom Easing) 实现自然的动画效果
+
+### 5. 情绪交互设计
+- 通过动态响应的动效曲线和反馈机制，让数字界面具备生物般的律动感
+- 结合 React 状态管理与动画库实现细腻的交互体验
+- 注重用户体验的细节，如加载状态、过渡动画、错误处理
+
+### 6. 性能调优
+- 熟练运用 `InstancedMesh` 和 `OffscreenCanvas` 确保在移动端也能维持流畅体验
+- 掌握 React 19 的并发特性与性能优化技巧（`useMemo`, `useCallback`, `Suspense`）
+- 使用 `requestIdleCallback` 优化非关键任务的初始化
+- 图片优先加载本地 WebP 格式，失败后降级到 CDN
+
+## 代码规范
+
+### TypeScript
+- 严格类型检查，避免使用 `any`
+- 为所有组件、函数、接口提供完整的类型定义
+- 使用类型推断，但关键类型必须显式声明
+
+### React 组件
+- 使用函数式组件和 Hooks
+- 组件命名使用 PascalCase
+- 文件命名使用 PascalCase（组件文件）或 kebab-case（工具文件）
+- 所有组件必须使用 TypeScript 接口定义 Props
+
+### 文件结构
+```
+app/
+  components/          # React 组件
+    layout/           # 布局组件
+    navigation/       # 导航组件
+    ui/               # 基础 UI 组件
+    prompts/          # PromptHub 相关组件
+    3d/               # 3D 场景组件
+  lib/                # 工具函数和常量
+    supabase/         # Supabase 客户端
+    parser/           # Markdown 解析器
+    scanner/          # 文件扫描器
+    agent/            # AI Agent 分析
+    sync/             # 数据同步
+    validators/       # 数据验证
+    watcher/          # 文件监听
+    realtime/         # 实时订阅
+    sharing/          # 分享功能
+  api/                # Next.js API Routes
+    mcp/              # MCP Skills Market
+    projects/         # 项目相关 API
+  dashboard/          # SIPE 指挥部页面
+  prompts/            # PromptHub 页面
+  styles/             # 全局样式
+packages/
+  cygnus-cli/         # CLI 工具独立包
+    src/
+      index.ts        # CLI 入口
+      commands/        # 命令实现
+      lib/            # CLI 工具函数
+public/
+  images/              # 静态资源
+types/                 # TypeScript 类型定义
+  sipe.ts             # SIPE JSON 标准
+  database.ts         # 数据库类型
+data/                  # 本地数据目录（不提交到 Git）
+  prompts/             # Prompt 文件系统存储
+    Coding/           # Domain 一级分类
+      Frontend/        # Scenario 二级分类
+        Nuxt4-Expert/ # Asset Prompt Repo
+          main.prompt
+          context.md
+          config.yaml
+docs/                  # 项目文档
+  PRD.md
+  TODO.md
+  Prompt 即 Repo.md
+  npm-cli.md
+scripts/               # 构建和工具脚本
+```
+
+### 命名约定
+- **组件**: PascalCase (`TarotCardDisplay.tsx`)
+- **工具函数**: camelCase (`getCardUrl.ts`)
+- **常量**: UPPER_SNAKE_CASE (`CARD_BACK_URL`)
+- **类型/接口**: PascalCase (`CardData`, `DrawResult`)
+
+### 样式规范
+- 优先使用 Tailwind CSS 类名
+- 复杂动画使用 CSS Keyframes（定义在 `globals.css`）
+- 3D 效果使用 Three.js Shader 或 CSS 3D Transform
+- 响应式设计：移动端优先
+
+### 图标规范
+- **统一使用 Iconify**：所有图标必须使用 `@iconify/react` 库，通过 `app/components/Icon.tsx` 组件使用
+- **禁止使用表情符号**：不得在代码中直接使用 emoji 表情符号（🔮、💬、🎤、⚖️、🔥、🌙、📚 等）
+- **图标命名**：优先使用 Material Design Icons (mdi) 图标集
+- **图标库地址**：https://icon-sets.iconify.design/
+- **使用示例**：
+  ```tsx
+  import { Icon } from './components/Icon';
+  <Icon icon="mdi:crystal-ball" width="1em" height="1em" />
+  ```
+
+### 性能最佳实践
+- 使用 `useMemo` 缓存计算结果
+- 使用 `useCallback` 缓存函数引用
+- 使用 `Suspense` 包裹异步组件
+- 3D 场景使用 `useFrame` 优化渲染循环
+- 避免在渲染函数中创建新对象
+
+## 项目特定约定
+
+### 项目定位
+- **Cygnus-OS**: 专为"一人即组织"设计的开源 AI 并行工程管理系统
+- **核心理念**: Prompt 即资产，并行即进化
+- **核心功能**: SIPE 指挥部、PromptHub、MCP Skills Market
+
+### 数据模型与标准
+
+#### SIPE JSON 标准
+- 定义在 `types/sipe.ts`
+- 结构包含：`project_name`, `last_sync`, `progress`, `tasks[]`, `requirements[]`, `health_score`
+- 所有项目进度数据必须符合 SIPE 标准
+
+#### 数据库表结构
+- **projects**: 项目进度表（id, name, description, path, progress, status, health_score, last_sync）
+- **tasks**: MD 任务快照（id, project_id, task_text, status, priority, line_number, file_path）
+- **project_sync_v1**: CLI 同步状态（id, project_id, sipe_json (JSONB), sync_timestamp）
+- **prompt_repos**: Prompt 仓库（id, name, description, path (LTree), domain, scenario, visibility）
+- **prompts**: Prompt 资产（id, repo_id, title, content, main_prompt_path, context_md_path, config_yaml_path, summary, tags[], version）
+- **prompt_metadata**: Agent 生成的元数据（id, prompt_id, frontmatter (JSONB), ai_summary, classification_suggestions）
+
+### 文件系统即真相 (Filesystem as Truth)
+
+#### Prompt 存储结构
+- Prompt 存储在 `/data/prompts` 目录（不提交到 Git）
+- 目录结构：`Domain/Scenario/Asset/`
+  - Domain: 一级分类（如 Coding, Finance）
+  - Scenario: 二级分类（如 Frontend, TradingView-SMC）
+  - Asset: Prompt Repo（如 Nuxt4-Expert）
+- 每个 Prompt Repo 包含：
+  - `main.prompt`: 核心指令
+  - `context.md`: 背景知识/约束
+  - `config.yaml`: 元数据（版本、Agent 分类标签）
+- 数据库仅作为索引和元数据存储，文件系统是唯一真相源
+
+#### 项目扫描结构
+- CLI 工具扫描 `/data` 目录下的所有子项目
+- 通过 `package.json` 或 `.git` 识别项目根目录
+- 自动定位每个项目的 `/docs/*.md` 文件进行解析
+
+### CLI 工具约定
+
+#### 命令设计
+- `cygnus sync`: 同步所有项目进度到 Supabase
+- `cygnus classify`: Agent 自动分类 Prompt
+- CLI 工具位于 `packages/cygnus-cli/` 独立包
+
+#### 配置文件
+- `.cygnusrc` 或 `cygnus.config.json`: CLI 配置文件
+- `.cygnus/state.json`: 本地缓存状态（每个项目下）
+- `.cygnus/index.json`: Prompt 全量索引（系统目录）
+
+#### Agent 分析流程
+1. 读取 Markdown 内容
+2. 调用 LLM 进行语义分析
+3. 生成 SIPE JSON 或分类建议
+4. 本地缓存结果
+5. 同步到 Supabase
+
+### 3D 场景
+- 主 3D 场景在 `app/components/3d/ProjectSphere.tsx`
+- 使用 `Canvas` 组件包裹 3D 内容
+- 能量球渲染：大小=项目活跃度，亮度=代码健康度
+- 支持交互：旋转、缩放、点击跳转
+
+### 状态管理
+- 使用 React Hooks (`useState`, `useRef`, `useMemo`)
+- 复杂状态考虑使用 Context API
+- 使用 Supabase Realtime 实现实时数据同步
+- 本地开发使用 Chokidar 监听文件变更
+
+### API 集成
+- API Routes 放在 `app/api/` 目录
+- 使用 Next.js 的 Route Handlers
+- **MCP API**: `app/api/mcp/route.ts` - 实现 MCP 协议规范
+- **项目同步 API**: `app/api/projects/sync/route.ts`
+- API Key 和 Supabase 凭证存储在环境变量中（`.env.local`）
+- 错误处理和重试机制必须完善
+
+### PromptHub 界面约定
+- **双栏树状结构**: 左侧分类树（VS Code 风格），右侧内容区
+- **Command+K 搜索**: 基于 Agent Summary 的快速搜索
+- **Monaco Editor**: 浏览器内编辑 Prompt，同步回文件系统
+- **Agent 汇总**: 悬停显示场景综述，一级菜单显示资产统计
+- **分享链接**: 支持 `cygnus://` 协议链接生成
+
+### SIPE 指挥部约定
+- **甘特图**: 使用 `react-gantt-chart` 展示项目进度
+- **并行脉动图**: 多项目活跃度分布可视化
+- **Grid 卡片布局**: 项目列表展示
+- **3D 空间视图**: 集成能量球可视化
+
+## 代码质量要求
+
+### 必须遵循
+1. **类型安全**: 所有代码必须有完整的 TypeScript 类型
+2. **错误处理**: API 调用、异步操作必须有错误处理
+3. **性能优化**: 避免不必要的重渲染和计算
+4. **可访问性**: 提供适当的 ARIA 标签和键盘导航
+5. **响应式设计**: 确保在不同屏幕尺寸下正常工作
+
+### 代码审查检查点
+- [ ] TypeScript 类型完整且正确
+- [ ] 没有控制台错误或警告
+- [ ] 性能优化已应用（useMemo, useCallback）
+- [ ] 错误处理已实现
+- [ ] 代码已格式化（Prettier/ESLint）
+- [ ] 组件可复用且模块化
+
+## 美学要求
+
+### 视觉风格
+- **主题**: 神秘、优雅、现代、科技感
+- **配色**: 深色背景（slate-900），金色/琥珀色强调（amber），支持暗色模式
+- **字体**: Cinzel（衬线字体，用于标题），Cormorant Garamond（用于正文）
+- **特效**: 粒子化、发光效果、渐变背景、能量球动画
+- **UI 风格**: VS Code 风格的树状导航，GitLab 风格的列表展示
+
+### 动画原则
+- 使用弹性缓动曲线 (`cubic-bezier`) 实现自然动画
+- 动画时长：快速交互 0.2-0.3s，页面过渡 0.4-0.6s
+- 使用 `transform` 和 `opacity` 实现性能优化的动画
+- 避免使用 `left`, `top` 等属性进行动画
+
+## 开发工作流
+
+### 代码质量检查（必须）
+**每完成一个功能后，必须执行以下检查：**
+1. 运行 `bun run lint` 检查代码规范
+2. 运行 `bunx tsc --noEmit` 进行 TypeScript 类型检查
+3. 确保所有错误和警告都已修复
+4. 重复检查 2 次以确保代码质量
+
+**检查命令：**
+```bash
+# 第一次检查
+bun run lint
+bunx tsc --noEmit
+
+# 第二次检查（确认修复）
+bun run lint
+bunx tsc --noEmit
+```
+
+### 提交规范
+- 使用语义化提交信息：`feat:`, `fix:`, `refactor:`, `docs:`, `style:`
+- 提交前必须通过 lint 和 typecheck 检查
+- 重要功能需要更新相关文档
+
+### 测试
+- 手动测试所有交互流程
+- 检查不同浏览器的兼容性
+- 验证移动端响应式设计
+
+## 注意事项
+
+1. **API Key 安全**: 永远不要将 API Key 提交到代码仓库，使用环境变量
+2. **性能监控**: 关注 3D 场景的帧率，确保 ≥ 60 FPS
+3. **资源优化**: 图片使用 WebP 格式，合理使用懒加载
+4. **浏览器兼容**: 确保现代浏览器（Chrome, Firefox, Safari, Edge）正常工作
+5. **文件系统同步**: CLI 工具负责文件系统和数据库的双向同步，确保数据一致性
+6. **LTree 路径**: 使用 PostgreSQL LTree 扩展管理多级分类路径，支持高效树形查询
+7. **Agent 驱动**: LLM 调用需要错误处理和重试机制，避免单点故障
+8. **数据隐私**: Private Prompt 必须通过 RLS 策略严格控制访问权限
+
