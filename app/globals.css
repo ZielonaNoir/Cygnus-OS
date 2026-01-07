@@ -1,38 +1,107 @@
 @import "tailwindcss";
 
+/* ReactBits 组件动画支持 */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --slate-900: #0f172a;
-  --amber-500: #f59e0b;
-  --amber-600: #d97706;
+  /* shadcn/ui 主题变量 - 艺术风格（深色+琥珀） */
+  --background: 15 23 42; /* slate-900 */
+  --foreground: 241 245 249; /* slate-100 */
+  
+  --card: 30 41 59; /* slate-800 */
+  --card-foreground: 241 245 249;
+  
+  --popover: 30 41 59;
+  --popover-foreground: 241 245 249;
+  
+  --primary: 245 158 11; /* amber-500 */
+  --primary-foreground: 15 23 42;
+  
+  --secondary: 51 65 85; /* slate-700 */
+  --secondary-foreground: 241 245 249;
+  
+  --muted: 51 65 85;
+  --muted-foreground: 148 163 184; /* slate-400 */
+  
+  --accent: 217 119 6; /* amber-600 */
+  --accent-foreground: 15 23 42;
+  
+  --destructive: 239 68 68; /* red-500 */
+  --destructive-foreground: 241 245 249;
+  
+  --border: 51 65 85;
+  --input: 51 65 85;
+  --ring: 245 158 11; /* amber-500 */
+  
+  --radius: 0.75rem; /* 12px - 圆角规范 */
+  
+  /* 艺术风格扩展变量 */
+  --glow-amber: 245 158 11 / 0.3; /* 琥珀发光效果 */
+  --shadow-soft: 0 4px 20px -2px rgb(0 0 0 / 0.3); /* 柔和阴影 */
+  --glass-bg: rgba(30, 41, 59, 0.7); /* 玻璃拟态背景 */
+  --glass-border: rgba(148, 163, 184, 0.2); /* 玻璃边框 */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-slate-900: var(--slate-900);
-  --color-amber-500: var(--amber-500);
-  --color-amber-600: var(--amber-600);
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-destructive-foreground: rgb(var(--destructive-foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
+    --background: 255 255 255;
+    --foreground: 15 23 42;
+    --card: 248 250 252; /* slate-50 */
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139; /* slate-500 */
+    --border: 226 232 240; /* slate-200 */
+    --input: 226 232 240;
   }
 }
 
 [data-theme="dark"] {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
+  --background: 15 23 42;
+  --foreground: 241 245 249;
 }
 
 [data-theme="light"] {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 255 255 255;
+  --foreground: 15 23 42;
 }
 
 body {
@@ -40,4 +109,45 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ReactBits Threads (CSS-only) */
+.threads-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.threads-bg::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background:
+    repeating-linear-gradient(
+      120deg,
+      rgba(245, 158, 11, 0.0) 0px,
+      rgba(245, 158, 11, 0.0) 58px,
+      rgba(245, 158, 11, 0.08) 59px,
+      rgba(245, 158, 11, 0.08) 60px
+    ),
+    radial-gradient(800px 800px at 20% 10%, rgba(245, 158, 11, 0.08), transparent 60%),
+    radial-gradient(700px 700px at 80% 90%, rgba(245, 158, 11, 0.06), transparent 60%);
+  transform: rotate(15deg) scale(1.25);
+  animation: threads-slide 22s linear infinite;
+  will-change: background-position;
+  filter: blur(0.3px);
+}
+
+@keyframes threads-slide {
+  0% {
+    background-position:
+      0px 0px,
+      0px 0px,
+      0px 0px;
+  }
+  100% {
+    background-position:
+      240px 0px,
+      0px 0px,
+      0px 0px;
+  }
 }

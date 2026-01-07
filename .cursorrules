@@ -36,7 +36,7 @@
 - **monaco-editor** 或 **@monaco-editor/react**: 代码编辑器
 - **recharts** 或 **react-gantt-chart**: 图表库
 - **@iconify/react**: ^6.0.2 (图标库)
-- **shadcn/ui**: UI 组件库
+- **shadcn/ui**: UI 组件库（项目默认 UI 基座，所有交互控件优先使用并二次封装）
 
 ## 核心能力
 
@@ -148,6 +148,44 @@ scripts/               # 构建和工具脚本
 - 复杂动画使用 CSS Keyframes（定义在 `globals.css`）
 - 3D 效果使用 Three.js Shader 或 CSS 3D Transform
 - 响应式设计：移动端优先
+- UI 组件统一以 `shadcn/ui` 为基础进行封装，避免散乱的语义与样式；保留艺术风格（圆角、玻璃拟态、渐变与光晕），通过设计 token 管理（颜色、阴影、圆角、动效）。
+
+#### Light Mode 规则（与 Dark Mode 对等维护）
+- 主题 Token（Tailwind 变量）：
+  - 前景：`text-foreground`（浅色模式=slate-900，深色模式=slate-100）
+  - 次级前景：`text-muted-foreground`
+  - 背景：`bg-background`
+  - 卡片背景：`bg-card/50` + `backdrop-blur-sm`
+  - 边框：`border-border/50`
+  - 主色：`text-primary`/`bg-primary`（amber，默认 `#f59e0b`）
+  - 强调背景：`bg-accent`，强调前景：`text-accent-foreground`
+- 组件约定（必须同时适配明暗模式）：
+  - Button：
+    - `outline`/`ghost` 变体必须包含 `text-foreground`，避免浅色下文字/图标对比不足
+    - 图标颜色使用 `currentColor`（通过父元素 `text-*` 控制）
+  - Select：
+    - 根节点：`text-foreground bg-background/50 border border-input`
+    - 选项：`[&>option]:text-foreground [&>option]:bg-background`
+  - Icon（Iconify）：
+    - 默认继承父元素颜色；通过父级 `text-foreground`/`text-primary` 控制主题
+  - Markdown：
+    - 外层使用 `prose prose-slate dark:prose-invert max-w-none`
+    - 行内代码使用 `bg-muted text-foreground`，代码块容器使用 `border-border/50 bg-background/50`
+- 页面/布局：
+  - 深色背景页：维持 `bg-background`（dark=slate-900），浅色模式自动切换
+  - 半透明层建议 `bg-card/50 backdrop-blur-sm` 保持玻璃拟态在 Light/Dark 一致观感
+- PWA：
+  - `app/layout.tsx` 的 `viewport.themeColor` 与 Manifest `theme_color` 保持与主色（amber）一致
+- 测试标准：
+  - 在 Light/Dark 两种模式下，文字、边框、图标对比度均需满足可读性要求（AA）
+  - 禁止写死深色背景/文字（如硬编码 `#0b`/`#fff`）；一律使用语义化 token 类名
+
+### UI 组件约定（shadcn/ui）
+- 基础控件（Button、Card、Input、Select、Progress、Dialog、Toast）均来源于 `shadcn/ui` 并在 `app/components/ui/` 目录下做语义化二次封装
+- 所有组件必须支持暗色模式，遵循项目配色（slate/amber）与艺术导向（柔和阴影、发光轮廓、轻微玻璃模糊）
+- 禁止直接在页面中使用第三方库的原始未封装组件
+- **优先使用现成组件（强制）**：若 `shadcn/ui` 已提供对应能力，必须优先通过 **shadcn MCP/registry** 搜索并添加现成组件，再在 `app/components/ui/` 做语义化二次封装；**禁止**自行从零实现同类基础交互组件
+- **允许自定义的前提（例外）**：仅当 `shadcn/ui`（含其 registry 生态）不存在该组件，或现成组件无法满足关键需求（可访问性/主题 token 适配/性能/交互行为）时，才允许自定义实现；且需在 PR/注释中写明原因与替代方案评估
 
 ### 图标规范
 - **统一使用 Iconify**：所有图标必须使用 `@iconify/react` 库，通过 `app/components/Icon.tsx` 组件使用
@@ -253,6 +291,7 @@ scripts/               # 构建和工具脚本
 - **Monaco Editor**: 浏览器内编辑 Prompt，同步回文件系统
 - **Agent 汇总**: 悬停显示场景综述，一级菜单显示资产统计
 - **分享链接**: 支持 `cygnus://` 协议链接生成
+- **shadcn/ui 规范**: 列表、表单、对话框等均使用 `shadcn/ui`，保证一致的交互反馈与艺术风格
 
 ### SIPE 指挥部约定
 - **甘特图**: 使用 `react-gantt-chart` 展示项目进度

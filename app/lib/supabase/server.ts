@@ -1,20 +1,31 @@
-/**
- * Supabase 客户端（服务器端）
- */
-
-import { createClient } from '@supabase/supabase-js';
-import { env } from '@lib/env';
+import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { env } from '@/app/lib/env';
 
 /**
- * 创建服务器端 Supabase 客户端（使用用户会话）
- * 注意：在 Next.js App Router 中，应该使用 @supabase/ssr 包来处理服务器端会话
- * 这里提供简化版本，实际使用时建议安装 @supabase/ssr
+ * 创建服务器端 Supabase 客户端（支持 SSR 和 Cookies）
+ * 用于 Server Actions, Route Handlers, Server Components
  */
-export async function createServerClient() {
-  return createClient(env.supabase.url, env.supabase.anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(env.supabase.url, env.supabase.anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
     },
   });
 }
@@ -28,11 +39,10 @@ export function createAdminClient() {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
   }
 
-  return createClient(env.supabase.url, env.supabase.serviceRoleKey, {
+  return createSupabaseClient(env.supabase.url, env.supabase.serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
 }
-
