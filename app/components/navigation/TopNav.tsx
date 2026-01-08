@@ -112,7 +112,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
                   width={28}
                   height={28}
                   className="rounded-full object-cover"
-                  unoptimized
+                  unoptimized={true}
                 />
               ) : (
                 <Icon icon="mdi:account-circle" className="h-5 w-5" />

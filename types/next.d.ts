@@ -130,6 +130,7 @@ declare module 'next/image' {
     quality?: number;
     placeholder?: 'blur' | 'empty';
     blurDataURL?: string;
+    unoptimized?: boolean;
   }
   const Image: FC<ImageProps>;
   export default Image;

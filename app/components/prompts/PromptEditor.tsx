@@ -9,8 +9,9 @@ import { toast } from '@/app/lib/toast';
 import { PermissionToggle } from './PermissionToggle';
 
 // 动态导入 Monaco Editor（仅在客户端加载）
-const MonacoEditor = dynamic(
-  () => import('@monaco-editor/react').then((mod) => mod.Editor),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MonacoEditor = dynamic<any>(
+  () => import('@monaco-editor/react').then((mod) => ({ default: mod.Editor })),
   {
     ssr: false,
     loading: () => (
