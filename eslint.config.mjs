@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "**/dist/**",
       // Ignore CLI package (it has its own ESLint config)
       "packages/cygnus-cli/**",
       "packages/**/node_modules/**",

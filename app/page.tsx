@@ -2,7 +2,7 @@ import Threads from '@/app/components/Threads.jsx';
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-background universe-theme">
       {/* 背景（ReactBits 占位 Aurora） */}
       <div className="absolute inset-0 z-0">
         {/* ReactBits Threads 背景（官方组件） */}

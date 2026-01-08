@@ -1,0 +1,47 @@
+
+> cygnus-os@0.1.0 lint
+> eslint . --ext .ts,.tsx
+
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\components\theme-toggle.tsx
+  10:13  warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\commands\classify.js
+  15:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\logger.js
+   56:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   82:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  114:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\prompt-sync.d.ts
+  29:220  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:239  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\prompt-sync.js
+  21:81  warning  'enableRetry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\supabase-sync.d.ts
+  21:118  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:143  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:148  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:198  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:217  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\commands\classify.ts
+  11:8  warning  'path' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\logger.ts
+   62:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   90:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  124:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\performance\performance-monitor.ts
+  10:5  warning  'TimelineEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\sync\prompt-sync.ts
+  46:3  warning  'enableRetry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+鉁?19 problems (7 errors, 12 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

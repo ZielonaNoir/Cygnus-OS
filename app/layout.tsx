@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Toaster } from "./components/ui/toaster";
 import { ThemeProvider } from "./components/theme-provider";
+import { PWARegister } from "./components/pwa/PWARegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster position="top-center" />
+          <PWARegister />
         </ThemeProvider>
       </body>
     </html>

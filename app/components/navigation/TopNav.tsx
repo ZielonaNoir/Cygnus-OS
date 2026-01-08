@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Icon } from '../Icon';
 import { Button } from '../ui/button';
+import { ThemeToggle } from '../theme-toggle';
 import { supabase } from '@/app/lib/supabase/client';
 import {
   DropdownMenu,
@@ -92,6 +93,9 @@ export function TopNav({ onMenuClick }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         <Button variant="ghost" size="icon" className="relative">
           <Icon icon="mdi:bell-outline" className="h-5 w-5" />
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary"></span>

@@ -46,3 +46,21 @@ export function createAdminClient() {
     },
   });
 }
+
+/**
+ * 从 Access Token 创建 Supabase 客户端
+ * 用于 MCP Server 等需要显式传递 Token 的场景
+ */
+export function createClientFromToken(token: string) {
+  return createSupabaseClient(env.supabase.url, env.supabase.anonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}

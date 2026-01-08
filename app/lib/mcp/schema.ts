@@ -73,5 +73,36 @@ export interface MCPErrorResponse {
   };
 }
 
+
 /** MCP API 响应类型 */
 export type MCPResponse<T> = MCPItemResponse<T> | MCPListResponse<T> | MCPErrorResponse;
+
+// --- Tools Extensions ---
+
+/** MCP 工具定义 */
+export interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+/** 项目更新参数 (对应 SIPE JSON) */
+export interface MCPProjectUpdateParams {
+  path: string; // 项目路径 (唯一标识)
+  projectName: string;
+  progress: number;
+  healthScore: number;
+  status: string;
+  tasks?: string[]; // Markdown 任务列表
+  requirements?: string[]; // 需求列表
+}
+
+/** MCP 工具执行请求 */
+export interface MCPExecuteRequest {
+  tool: string;
+  arguments: Record<string, unknown>;
+}

@@ -34,7 +34,7 @@ const navigationItems = [
   },
   {
     name: 'MCP Skills',
-    href: '/mcp',
+    href: '/dashboard/mcp',
     icon: 'mdi:puzzle',
     description: '技能市场 · MCP 能力挂载',
   },

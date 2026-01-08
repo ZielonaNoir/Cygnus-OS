@@ -5,6 +5,7 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -14,43 +15,96 @@
   animation: shimmer 2s infinite;
 }
 
-:root {
-  /* shadcn/ui 主题变量 - 艺术风格（深色+琥珀） */
-  --background: 15 23 42; /* slate-900 */
-  --foreground: 241 245 249; /* slate-100 */
-  
-  --card: 30 41 59; /* slate-800 */
+/* 宇宙主题（保留首页原貌 / Page Only） */
+.universe-theme {
+  --background: 15 23 42;
+  --foreground: 241 245 249;
+  --card: 30 41 59;
   --card-foreground: 241 245 249;
-  
   --popover: 30 41 59;
   --popover-foreground: 241 245 249;
-  
-  --primary: 245 158 11; /* amber-500 */
+  --primary: 245 158 11;
   --primary-foreground: 15 23 42;
-  
-  --secondary: 51 65 85; /* slate-700 */
+  --secondary: 51 65 85;
   --secondary-foreground: 241 245 249;
-  
   --muted: 51 65 85;
-  --muted-foreground: 148 163 184; /* slate-400 */
-  
-  --accent: 217 119 6; /* amber-600 */
+  --muted-foreground: 148 163 184;
+  --accent: 217 119 6;
   --accent-foreground: 15 23 42;
-  
-  --destructive: 239 68 68; /* red-500 */
+  --destructive: 239 68 68;
   --destructive-foreground: 241 245 249;
-  
   --border: 51 65 85;
   --input: 51 65 85;
-  --ring: 245 158 11; /* amber-500 */
-  
-  --radius: 0.75rem; /* 12px - 圆角规范 */
-  
+  --ring: 245 158 11;
+  --radius: 0.75rem;
+
   /* 艺术风格扩展变量 */
-  --glow-amber: 245 158 11 / 0.3; /* 琥珀发光效果 */
-  --shadow-soft: 0 4px 20px -2px rgb(0 0 0 / 0.3); /* 柔和阴影 */
-  --glass-bg: rgba(30, 41, 59, 0.7); /* 玻璃拟态背景 */
-  --glass-border: rgba(148, 163, 184, 0.2); /* 玻璃边框 */
+  --glow-amber: 245 158 11 / 0.3;
+  --shadow-soft: 0 4px 20px -2px rgb(0 0 0 / 0.3);
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.2);
+}
+
+:root {
+  /* Shadcn Standard Light (Zinc) */
+  --background: 255 255 255;
+  --foreground: 9 9 11;
+  --card: 255 255 255;
+  --card-foreground: 9 9 11;
+  --popover: 255 255 255;
+  --popover-foreground: 9 9 11;
+  --primary: 245 158 11;
+  /* Amber Maintained */
+  --primary-foreground: 255 255 255;
+  --secondary: 244 244 245;
+  --secondary-foreground: 24 24 27;
+  --muted: 244 244 245;
+  --muted-foreground: 113 113 122;
+  --accent: 244 244 245;
+  --accent-foreground: 24 24 27;
+  --destructive: 239 68 68;
+  --destructive-foreground: 250 250 250;
+  --border: 228 228 231;
+  --input: 228 228 231;
+  --ring: 245 158 11;
+  --radius: 0.5rem;
+  /* Native radius */
+
+  /* Light Mode Enhancements */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(113, 113, 122, 0.2);
+  --shadow-soft: 0 4px 20px -2px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  /* Shadcn Standard Dark (Zinc) - Native Black */
+  --background: 9 9 11;
+  /* Zinc 950 */
+  --foreground: 250 250 250;
+  --card: 9 9 11;
+  /* Native flat style */
+  --card-foreground: 250 250 250;
+  --popover: 9 9 11;
+  --popover-foreground: 250 250 250;
+  --primary: 245 158 11;
+  --primary-foreground: 255 255 255;
+  --secondary: 39 39 42;
+  /* Zinc 800 */
+  --secondary-foreground: 250 250 250;
+  --muted: 39 39 42;
+  --muted-foreground: 161 161 170;
+  --accent: 39 39 42;
+  --accent-foreground: 250 250 250;
+  --destructive: 127 29 29;
+  --destructive-foreground: 250 250 250;
+  --border: 39 39 42;
+  --input: 39 39 42;
+  --ring: 245 158 11;
+  --radius: 0.5rem;
+
+  /* Dark Mode Enhancements */
+  --glass-bg: rgba(9, 9, 11, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
@@ -77,33 +131,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: 255 255 255;
-    --foreground: 15 23 42;
-    --card: 248 250 252; /* slate-50 */
-    --card-foreground: 15 23 42;
-    --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
-    --secondary: 241 245 249;
-    --secondary-foreground: 15 23 42;
-    --muted: 241 245 249;
-    --muted-foreground: 100 116 139; /* slate-500 */
-    --border: 226 232 240; /* slate-200 */
-    --input: 226 232 240;
-  }
-}
-
-[data-theme="dark"] {
-  --background: 15 23 42;
-  --foreground: 241 245 249;
-}
-
-[data-theme="light"] {
-  --background: 255 255 255;
-  --foreground: 15 23 42;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -117,18 +144,17 @@ body {
   inset: 0;
   overflow: hidden;
 }
+
 .threads-bg::before {
   content: "";
   position: absolute;
   inset: -25%;
   background:
-    repeating-linear-gradient(
-      120deg,
+    repeating-linear-gradient(120deg,
       rgba(245, 158, 11, 0.0) 0px,
       rgba(245, 158, 11, 0.0) 58px,
       rgba(245, 158, 11, 0.08) 59px,
-      rgba(245, 158, 11, 0.08) 60px
-    ),
+      rgba(245, 158, 11, 0.08) 60px),
     radial-gradient(800px 800px at 20% 10%, rgba(245, 158, 11, 0.08), transparent 60%),
     radial-gradient(700px 700px at 80% 90%, rgba(245, 158, 11, 0.06), transparent 60%);
   transform: rotate(15deg) scale(1.25);
@@ -144,6 +170,7 @@ body {
       0px 0px,
       0px 0px;
   }
+
   100% {
     background-position:
       240px 0px,

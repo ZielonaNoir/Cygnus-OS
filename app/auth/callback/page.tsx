@@ -5,6 +5,21 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase/client';
 
 export default function AuthCallbackPage() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+            <React.Suspense fallback={
+                <div className="text-center space-y-4">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                    <p className="text-muted-foreground">加载中...</p>
+                </div>
+            }>
+                <CallbackContent />
+            </React.Suspense>
+        </div>
+    );
+}
+
+function CallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = React.useState('正在验证登录...');
@@ -98,11 +113,9 @@ export default function AuthCallbackPage() {
     }, [router, searchParams]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-            <div className="text-center space-y-4">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                <p className="text-muted-foreground">{status}</p>
-            </div>
+        <div className="text-center space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+            <p className="text-muted-foreground">{status}</p>
         </div>
     );
 }

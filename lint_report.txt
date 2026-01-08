@@ -1,0 +1,85 @@
+
+> cygnus-os@0.1.0 lint
+> eslint . --ext .ts,.tsx
+
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\api\prompts\revert\route.ts
+  50:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\components\mcp\ConnectToCursor.tsx
+  10:10  warning  'motion' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\components\prompts\VersionHistory.tsx
+  72:22  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\components\theme-toggle.tsx
+  10:13  warning  'theme' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\dashboard\mcp\page.tsx
+  24:45   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  24:60   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  30:61   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  30:108  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\app\lib\mcp\projects.ts
+  8:33  warning  'createAdminClient' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\commands\classify.js
+  15:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\logger.js
+   56:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   82:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  114:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\prompt-sync.d.ts
+  29:220  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:239  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\prompt-sync.js
+  21:81  warning  'enableRetry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\dist\lib\sync\supabase-sync.d.ts
+  21:118  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:143  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:148  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:198  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:217  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\commands\classify.ts
+  11:8  warning  'path' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\commands\init.ts
+  51:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  84:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\commands\sync.ts
+  23:5  warning  'isPromptRepoCompleted' is defined but never used   @typescript-eslint/no-unused-vars
+  24:5  warning  'addCompletedProject' is defined but never used     @typescript-eslint/no-unused-vars
+  25:5  warning  'addCompletedPromptRepo' is defined but never used  @typescript-eslint/no-unused-vars
+  26:5  warning  'addFailedItem' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\logger.ts
+   62:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+   90:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  124:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\performance\performance-monitor.ts
+  10:5  warning  'TimelineEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\sync\prompt-sync.ts
+   44:3   warning  'enableRetry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  290:13  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  334:17  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  335:17  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\CygneNoir\Desktop\Cygnus-OS\cygnus-os\packages\cygnus-cli\src\lib\utils\retry-utils.ts
+  35:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+鉁?41 problems (22 errors, 19 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

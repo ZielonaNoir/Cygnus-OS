@@ -7,6 +7,15 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "../logger.js";
 import type { SIPEJSON } from "../agent/types.js";
 import type { ProjectInfo } from "../scanner/project-scanner.js";
+import { retryWithBackoff } from "../utils/retry-utils.js";
+import type { RecoveryState } from "../recovery/recovery-types.js";
+import {
+  addCompletedProject,
+  addFailedItem,
+  saveRecoveryState,
+} from "../recovery/recovery-manager.js";
+import { ProgressBar } from "../utils/progress-bar.js";
+import { PerformanceMonitor } from "../performance/performance-monitor.js";
 
 export interface SupabaseConfig {
   url: string;
@@ -17,6 +26,7 @@ export interface SyncResult {
   success: boolean;
   projectId?: string;
   error?: string;
+  rollbackPerformed?: boolean;
 }
 
 /**
@@ -36,24 +46,42 @@ export function createSupabaseClient(config: SupabaseConfig) {
 }
 
 /**
- * 同步项目到 Supabase
+ * 同步项目到 Supabase（带重试和回滚）
  */
 export async function syncProject(
   projectInfo: ProjectInfo,
   sipeJson: SIPEJSON,
-  config: SupabaseConfig
+  config: SupabaseConfig,
+  enableRetry = true,
+  ownerId?: string
 ): Promise<SyncResult> {
   const supabase = createSupabaseClient(config);
+  let createdProjectId: string | null = null;
+  let wasNewProject = false;
 
   try {
     logger.info(`Syncing project: ${projectInfo.name}`);
 
-    // 1. 查找或创建项目记录
-    const { data: existingProject } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("path", projectInfo.path)
-      .single();
+    // 1. 查找或创建项目记录（带重试）
+    const findOrCreateProject = async () => {
+      const { data: existingProject } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("path", projectInfo.path)
+        .single();
+
+      return existingProject;
+    };
+
+    const projectResult = enableRetry
+      ? await retryWithBackoff(findOrCreateProject)
+      : { success: true, result: await findOrCreateProject(), attempts: 1, totalDelay: 0 };
+
+    if (!projectResult.success) {
+      throw projectResult.error || new Error("Failed to find project");
+    }
+
+    const existingProject = projectResult.result;
 
     let projectId: string;
 
@@ -61,49 +89,92 @@ export async function syncProject(
       projectId = existingProject.id;
       logger.debug(`Found existing project: ${projectId}`);
     } else {
-      // 创建新项目
-      const { data: newProject, error: createError } = await supabase
+      // 创建新项目（带重试）
+      const createProject = async () => {
+        const { data: newProject, error: createError } = await supabase
+          .from("projects")
+          .insert({
+            name: sipeJson.project_name,
+            description: null,
+            path: projectInfo.path,
+            progress: sipeJson.progress,
+            status: getStatusFromProgress(sipeJson.progress),
+            health_score: sipeJson.health_score,
+            last_sync: new Date().toISOString(),
+            owner_id: ownerId || null, // 如果提供了 ownerId，则设置；否则为 null
+          })
+          .select("id")
+          .single();
+
+        if (createError) {
+          throw createError;
+        }
+
+        return newProject;
+      };
+
+      const createResult = enableRetry
+        ? await retryWithBackoff(createProject)
+        : { success: true, result: await createProject(), attempts: 1, totalDelay: 0 };
+
+      if (!createResult.success) {
+        throw createResult.error || new Error("Failed to create project");
+      }
+
+      const newProject = createResult.result;
+      if (!newProject) {
+        throw new Error("Failed to create project: no project returned");
+      }
+      projectId = newProject.id;
+      createdProjectId = projectId;
+      wasNewProject = true;
+      logger.debug(`Created new project: ${projectId}`);
+    }
+
+    // 2. 更新项目信息（带重试）
+    const updateProject = async () => {
+      const { error: updateError } = await supabase
         .from("projects")
-        .insert({
+        .update({
           name: sipeJson.project_name,
-          description: null,
-          path: projectInfo.path,
           progress: sipeJson.progress,
           status: getStatusFromProgress(sipeJson.progress),
           health_score: sipeJson.health_score,
           last_sync: new Date().toISOString(),
         })
-        .select("id")
-        .single();
+        .eq("id", projectId);
 
-      if (createError) {
-        throw createError;
+      if (updateError) {
+        throw updateError;
       }
+    };
 
-      projectId = newProject.id;
-      logger.debug(`Created new project: ${projectId}`);
+    const updateResult = enableRetry
+      ? await retryWithBackoff(updateProject)
+      : { success: true, result: await updateProject(), attempts: 1, totalDelay: 0 };
+
+    if (!updateResult.success) {
+      // Rollback if we created a new project
+      if (wasNewProject && createdProjectId) {
+        await rollbackProject(supabase, createdProjectId);
+      }
+      throw updateResult.error || new Error("Failed to update project");
     }
 
-    // 2. 更新项目信息
-    const { error: updateError } = await supabase
-      .from("projects")
-      .update({
-        name: sipeJson.project_name,
-        progress: sipeJson.progress,
-        status: getStatusFromProgress(sipeJson.progress),
-        health_score: sipeJson.health_score,
-        last_sync: new Date().toISOString(),
-      })
-      .eq("id", projectId);
+    // 3. 同步任务列表（带重试）
+    const syncTasksResult = enableRetry
+      ? await retryWithBackoff(() => syncTasks(projectId, sipeJson, supabase))
+      : { success: true, result: await syncTasks(projectId, sipeJson, supabase), attempts: 1, totalDelay: 0 };
 
-    if (updateError) {
-      throw updateError;
+    if (!syncTasksResult.success) {
+      // Rollback if we created a new project
+      if (wasNewProject && createdProjectId) {
+        await rollbackProject(supabase, createdProjectId);
+      }
+      throw syncTasksResult.error || new Error("Failed to sync tasks");
     }
 
-    // 3. 同步任务列表
-    await syncTasks(projectId, sipeJson, supabase);
-
-    // 4. 保存 SIPE JSON 快照
+    // 4. 保存 SIPE JSON 快照（失败不回滚，只记录）
     await saveSIPESnapshot(projectId, sipeJson, supabase);
 
     logger.success(`Project synced successfully: ${projectInfo.name}`);
@@ -114,10 +185,44 @@ export async function syncProject(
     };
   } catch (error) {
     logger.error(`Failed to sync project: ${projectInfo.name}`, error);
+
+    // Attempt rollback if we created a new project
+    let rollbackPerformed = false;
+    if (wasNewProject && createdProjectId) {
+      logger.recovery(`Attempting rollback for project: ${createdProjectId}`);
+      rollbackPerformed = await rollbackProject(supabase, createdProjectId);
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
+      rollbackPerformed,
     };
+  }
+}
+
+/**
+ * 回滚项目创建（删除项目及其关联数据）
+ */
+async function rollbackProject(
+  supabase: ReturnType<typeof createSupabaseClient>,
+  projectId: string
+): Promise<boolean> {
+  try {
+    // 删除任务
+    await supabase.from("tasks").delete().eq("project_id", projectId);
+
+    // 删除 SIPE 快照
+    await supabase.from("project_sync_v1").delete().eq("project_id", projectId);
+
+    // 删除项目
+    await supabase.from("projects").delete().eq("id", projectId);
+
+    logger.recovery(`Rollback completed for project: ${projectId}`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to rollback project: ${projectId}`, error);
+    return false;
   }
 }
 
@@ -223,12 +328,20 @@ function extractFilePath(taskText: string): string | null {
 }
 
 /**
- * 批量同步多个项目
+ * 批量同步多个项目（带恢复支持）
+ */
+/**
+ * 同步所有项目
  */
 export async function syncAllProjects(
   projects: ProjectInfo[],
   sipeData: Map<string, SIPEJSON>,
-  config: SupabaseConfig
+  config: SupabaseConfig,
+  recoveryState?: RecoveryState | null,
+  enableRetry = true,
+  progressBar?: ProgressBar,
+  perfMonitor?: PerformanceMonitor,
+  ownerId?: string
 ): Promise<{ success: number; failed: number }> {
   let successCount = 0;
   let failedCount = 0;
@@ -243,11 +356,36 @@ export async function syncAllProjects(
       continue;
     }
 
-    const result = await syncProject(project, sipeJson, config);
+    const result = await syncProject(project, sipeJson, config, enableRetry, ownerId);
     if (result.success) {
       successCount++;
+      // Update recovery state
+      if (recoveryState) {
+        const updated = addCompletedProject(recoveryState, project.path);
+        Object.assign(recoveryState, updated);
+        saveRecoveryState(recoveryState);
+      }
+      // Update progress bar
+      if (progressBar) {
+        progressBar.increment();
+      }
+      // Track performance
+      if (perfMonitor) {
+        perfMonitor.recordItem();
+      }
     } else {
       failedCount++;
+      // Log failure to recovery state
+      if (recoveryState) {
+        const updated = addFailedItem(
+          recoveryState,
+          'project',
+          project.path,
+          result.error || 'Unknown error'
+        );
+        Object.assign(recoveryState, updated);
+        saveRecoveryState(recoveryState);
+      }
     }
 
     // 添加小延迟，避免 API 限流

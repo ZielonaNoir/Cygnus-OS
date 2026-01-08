@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Icon } from '@/app/components/Icon';
 import { toast } from '@/app/lib/toast';
@@ -11,6 +10,15 @@ import { PromptEditor } from '@/app/components/prompts/PromptEditor';
 import { MarkdownRenderer } from '@/app/components/ui/markdown-renderer';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { ShareDialog } from '@/app/components/prompts/ShareDialog';
+import { VersionHistory } from '@/app/components/prompts/VersionHistory';
+import { ScrollArea } from '@/app/components/ui/scroll-area';
+import { Badge } from '@/app/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu';
 
 interface PromptDetailPageProps {
   params: Promise<{ id: string[] }>;
@@ -23,6 +31,7 @@ type ReadResponse =
     mainPrompt: string;
     context: string | null;
     config: string | null;
+    id: string;
   }
   | { ok: false; error: string };
 
@@ -45,8 +54,9 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
   const title = React.useMemo(() => segments[segments.length - 1] ?? 'Prompt', [segments]);
 
   const [content, setContent] = React.useState<string>('');
+  const [promptId, setPromptId] = React.useState<string>('');
   const [isEditing, setIsEditing] = React.useState(false);
-  const [updatedAt, setUpdatedAt] = React.useState<string>('');
+
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string>('');
 
@@ -63,7 +73,7 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
         }
         if (!mounted) return;
         setContent(data.mainPrompt);
-        setUpdatedAt(new Date().toISOString().slice(0, 10));
+        setPromptId(data.id);
       } catch (e) {
         const msg = e instanceof Error ? e.message : '加载失败';
         if (!mounted) return;
@@ -88,7 +98,7 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
       if (!resp.ok || !data?.ok) throw new Error(data?.error || '保存失败');
       setContent(newContent);
       setIsEditing(false);
-      setUpdatedAt(new Date().toISOString().slice(0, 10));
+      setIsEditing(false);
       toast.success('保存成功', '已更新 main.prompt');
     } catch (err) {
       console.error(err);
@@ -96,167 +106,192 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleRevert = async (versionId: string) => {
     try {
-      const resp = await fetch('/api/prompts/delete', {
-        method: 'DELETE',
+      const resp = await fetch('/api/prompts/revert', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: promptPath }),
+        body: JSON.stringify({ promptId, versionId })
       });
       const data = await resp.json();
-      if (!resp.ok || !data?.ok) throw new Error(data?.error || '删除失败');
-      toast.success('删除成功', '该 Prompt 已移至虚空');
-      router.push('/prompts');
-    } catch (err) {
-      console.error(err);
-      toast.error('删除失败', '请稍后重试');
+      if (!resp.ok || !data.ok) throw new Error(data.error || '回滚失败');
+
+      toast.success('回滚成功', '已恢复到选定版本');
+      // Reload content
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      toast.error('回滚失败', e instanceof Error ? e.message : '未知错误');
     }
   };
 
-  return (
-    <div className="h-full bg-background p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-3xl font-bold text-foreground truncate">{title}</h1>
-            <p className="mt-2 text-xs text-muted-foreground truncate">
-              <Icon icon="mdi:folder-outline" className="inline h-4 w-4 mr-1" />
-              {promptPath}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(content);
-                toast.success('已复制到剪贴板', 'Prompt 内容已复制');
-              }}
-              disabled={!content}
-            >
-              <Icon icon="mdi:content-copy" className="h-4 w-4" />
-              复制
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing((v) => !v)}
-              disabled={isLoading || !!error}
-            >
-              <Icon icon={isEditing ? 'mdi:eye' : 'mdi:pencil'} className="h-4 w-4" />
-              {isEditing ? '预览' : '编辑'}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDelete} disabled={isLoading || !!error}>
-              <Icon icon="mdi:delete-outline" className="h-4 w-4" />
-              删除
-            </Button>
-          </div>
-        </div>
 
-        {/* Metadata */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Icon icon="mdi:clock-outline" className="h-4 w-4" />
-            <span>更新于: {updatedAt || '—'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Icon icon="mdi:code-tags" className="h-4 w-4" />
-            <span>版本: 1.0.0</span>
-          </div>
-        </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-foreground">Prompt 内容</CardTitle>
-              <CardDescription>加载中...</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-11/12" />
-              <Skeleton className="h-4 w-10/12" />
-              <Skeleton className="h-4 w-9/12" />
-            </CardContent>
-          </Card>
-        ) : error ? (
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-foreground">未找到 Prompt</CardTitle>
-              <CardDescription>该条目不存在于 `/data/prompts`</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-border/50 bg-background/50 p-4 text-sm text-muted-foreground">
-                {error}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/prompts')}
-                  className="group border-primary/30 bg-card/50 backdrop-blur-sm hover:border-primary hover:bg-primary/10 hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.4)] transition-all duration-300"
-                >
-                  <Icon icon="mdi:arrow-left" className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-0.5" />
-                  返回 PromptHub
-                </Button>
-                <Button onClick={() => window.location.reload()}>
-                  <Icon icon="mdi:refresh" className="h-4 w-4" />
-                  重试
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : isEditing ? (
-          <PromptEditor
-            initialValue={content}
-            language="markdown"
-            onSave={handleSave}
-            onCancel={() => setIsEditing(false)}
-          />
-        ) : (
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-foreground">Prompt 内容</CardTitle>
-              <CardDescription>完整的 Prompt 指令文本</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border/50 bg-background/50 p-6">
-                <MarkdownRenderer content={content} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-2">
-          <ShareDialog promptPath={promptPath} promptTitle={title}>
-            <Button variant="outline" disabled={isLoading || !!error}>
-              <Icon icon="mdi:share-variant" className="h-4 w-4" />
-              分享
-            </Button>
-          </ShareDialog>
-          <Button
-            variant="outline"
-            disabled={isLoading || !!error}
-            onClick={() => {
-              const blob = new Blob([content], { type: 'text/markdown' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${title}.md`;
-              a.click();
-              URL.revokeObjectURL(url);
-              toast.success('导出成功', `${title}.md 已下载`);
-            }}
-          >
-            <Icon icon="mdi:download" className="h-4 w-4" />
-            导出
-          </Button>
+  if (isLoading) {
+    return (
+      <div className="h-full w-full flex flex-col p-8 space-y-8 bg-background/50">
+        <Skeleton className="h-20 w-full max-w-2xl" />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center space-y-4">
+        <div className="rounded-full bg-destructive/10 p-4">
+          <Icon icon="mdi:alert-circle" className="h-12 w-12 text-destructive" />
+        </div>
+        <h2 className="text-xl font-semibold">未找到 Prompt</h2>
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => router.push('/prompts')}>返回列表</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-background relative overflow-hidden">
+      {/* Sticky Header with Glassmorphism */}
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/40 bg-background/80 px-3 md:px-6 py-3 md:py-4 backdrop-blur-xl">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base md:text-xl font-bold tracking-tight truncate">{title}</h1>
+              <Badge variant="outline" className="hidden sm:flex text-xs font-mono text-muted-foreground bg-muted/50 border-0">
+                v1.0.0
+              </Badge>
+            </div>
+            <div className="hidden md:flex items-center text-xs text-muted-foreground truncate font-mono opacity-70">
+              <Icon icon="mdi:folder-outline" className="mr-1 h-3.5 w-3.5" />
+              {promptPath}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center gap-2">
+          <VersionHistory promptId={promptId} onRevert={handleRevert} />
+
+          <div className="h-6 w-px bg-border/50 mx-2" />
+
+          <ShareDialog promptPath={promptPath} promptTitle={title}>
+            <Button variant="ghost" size="icon" title="分享">
+              <Icon icon="mdi:share-variant" className="h-5 w-5 opacity-70" />
+            </Button>
+          </ShareDialog>
+
+          <Button variant="ghost" size="icon" title="导出" onClick={() => {
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('导出成功');
+          }}>
+            <Icon icon="mdi:download" className="h-5 w-5 opacity-70" />
+          </Button>
+
+          <div className="h-6 w-px bg-border/50 mx-2" />
+
+          {isEditing ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>取消</Button>
+              {/* Save button handled inside Editor? Or we can trigger it from outside ref. 
+                        For now, PromptEditor has internal save button if showToolbar is true. 
+                        Let's keep using PromptEditor's internal toolbar or lift state. 
+                        Actually, PromptEditor internal save button is "Save". 
+                        We will toggle "isEditing" here and let PromptEditor handle the rest.
+                    */}
+            </>
+          ) : (
+            <Button onClick={() => setIsEditing(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all">
+              <Icon icon="mdi:pencil" className="mr-2 h-4 w-4" />
+              编辑 Prompt
+            </Button>
+          )}
+        </div>
+
+        {/* Mobile Actions - Dropdown Menu */}
+        <div className="flex md:hidden items-center gap-1">
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)} size="sm" variant="default" className="h-8 text-xs">
+              <Icon icon="mdi:pencil" className="mr-1 h-3.5 w-3.5" />
+              编辑
+            </Button>
+          )}
+          {isEditing && (
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="h-8 text-xs">
+              取消
+            </Button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Icon icon="mdi:dots-vertical" className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => {
+                const blob = new Blob([content], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${title}.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success('导出成功');
+              }}>
+                <Icon icon="mdi:download" className="mr-2 h-4 w-4" />
+                导出 Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                toast.info('请在桌面版访问完整分享功能');
+              }}>
+                <Icon icon="mdi:share-variant" className="mr-2 h-4 w-4" />
+                分享
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                toast.info('请在桌面版访问版本历史');
+              }}>
+                <Icon icon="mdi:history" className="mr-2 h-4 w-4" />
+                版本历史
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Main Content Area - Full Width/Height */}
+      <main className="flex-1 overflow-y-auto">
+        {isEditing ? (
+          <div className="h-full px-3 md:px-6 py-4 md:py-6">
+            <PromptEditor
+              initialValue={content}
+              language="markdown"
+              onSave={handleSave}
+              onCancel={() => setIsEditing(false)}
+              promptId={promptId}
+              height="100%"
+              showToolbar={true}
+              title=""
+            />
+          </div>
+        ) : (
+          <ScrollArea className="h-full w-full">
+            <div className="max-w-[1200px] mx-auto p-4 md:p-8 lg:p-12">
+              <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-a:text-primary">
+                <MarkdownRenderer content={content} />
+              </div>
+            </div>
+          </ScrollArea>
+        )}
+      </main>
     </div>
   );
 }
-
-

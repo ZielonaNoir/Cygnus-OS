@@ -5,11 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSkillById } from '@lib/mcp/skills';
+import { getAuthToken } from '@lib/mcp/auth';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const token = await getAuthToken(request);
+
     try {
         const { id } = await params;
 
@@ -20,7 +23,7 @@ export async function GET(
             );
         }
 
-        const skill = await getSkillById(id);
+        const skill = await getSkillById(id, token);
 
         if (!skill) {
             return NextResponse.json(

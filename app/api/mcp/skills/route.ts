@@ -5,11 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { listPublicSkills, searchSkills } from '@lib/mcp/skills';
+import { listSkills, searchSkills } from '@lib/mcp/skills';
 import type { MCPSearchRequest } from '@lib/mcp/schema';
+import { getAuthToken } from '@lib/mcp/auth';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+    const token = await getAuthToken(request);
 
     try {
         const query = searchParams.get('query');
@@ -21,13 +23,14 @@ export async function GET(request: NextRequest) {
 
         // 如果有搜索参数，使用搜索接口
         if (query || domain || scenario || tagsParam) {
-            const searchRequest: MCPSearchRequest = {
+            const searchRequest: MCPSearchRequest & { token?: string | null } = {
                 query: query || undefined,
                 domain: domain || undefined,
                 scenario: scenario || undefined,
                 tags: tagsParam ? tagsParam.split(',') : undefined,
                 limit,
                 offset,
+                token
             };
 
             const result = await searchSkills(searchRequest);
@@ -37,8 +40,8 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 否则返回所有公开技能
-        const result = await listPublicSkills({ limit, offset });
+        // 否则返回所有技能 (根据 Auth 决定是否包含 private)
+        const result = await listSkills({ limit, offset, token });
         return NextResponse.json({
             success: true,
             ...result,

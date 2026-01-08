@@ -1,6 +1,6 @@
 'use server'
 
-import { createAdminClient } from '@/app/lib/supabase/server'
+import { createClient } from '@/app/lib/supabase/server'
 import { Suspense } from 'react'
 import { Progress } from '@/app/components/ui/progress'
 import {
@@ -24,7 +24,15 @@ type SearchParams = {
 }
 
 async function fetchProjects(filters: SearchParams) {
-  const supabase = createAdminClient()
+  const supabase = await createClient()
+  
+  // 验证用户已认证
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return { data: [], error: '未认证，请先登录' }
+  }
+  
+  // 使用 RLS 策略，只查询当前用户的项目
   let query = supabase
     .from('projects')
     .select('id,name,description,progress,status,health_score,last_sync,path')
@@ -70,6 +78,19 @@ export default async function DashboardPage({
         <div className="mb-8 rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-black/50">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <UniverseScene projects={projects as any[]} />
+        </div>
+
+        {/* 操作栏 */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">我的项目</h2>
+          <Button asChild>
+            <a href="/dashboard/projects/new">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              创建项目
+            </a>
+          </Button>
         </div>
 
         {/* 搜索与筛选区域 */}
@@ -124,8 +145,34 @@ export default async function DashboardPage({
             {error ? (
               <p className="text-sm text-red-500">加载失败：{error}</p>
             ) : projects.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                暂无项目数据。请运行 CLI 同步或在 Supabase 创建项目记录。
+              <div className="rounded-lg border border-dashed border-border/50 p-8 text-center space-y-4 bg-card/30">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">暂无项目数据</p>
+                  <p className="text-sm text-muted-foreground">
+                    请使用以下方式同步项目数据：
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+                  <a
+                    href="/dashboard/mcp"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-md"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    通过 MCP 连接
+                  </a>
+                  <span className="text-xs text-muted-foreground">或</span>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 text-sm font-mono text-foreground bg-muted rounded-lg border border-border/50">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    cygnus sync
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  查看 <a href="/docs/CLI_GUIDE.md" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CLI 使用指南</a> 了解更多
+                </p>
               </div>
             ) : (
               <>
