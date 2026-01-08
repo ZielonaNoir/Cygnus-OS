@@ -92,8 +92,8 @@ function ThreadsWrapper() {
     <div className="absolute inset-0">
       <Threads
         color={[0.83, 0.59, 0.16]}
-        amplitude={3.0}
-        distance={0.60}
+        amplitude={2.0}
+        distance={0.1}
         enableMouseInteraction
       />
     </div>

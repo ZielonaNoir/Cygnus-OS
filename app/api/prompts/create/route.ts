@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { createClient } from '@/app/lib/supabase/server';
 
 type CreatePromptRequest = {
   name: string;
@@ -77,6 +78,58 @@ export async function POST(request: Request) {
       .relative(process.cwd(), targetDir)
       .split(path.sep)
       .join('/');
+
+    // ---------------------------------------------------------
+    // DB Sync: Insert into Supabase to ensure immediate visibility
+    // ---------------------------------------------------------
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // 1. Insert or Get Repo
+        // path needs to be ltree compatible (alphanumeric and underscores only, no hyphens)
+        // Domain.Scenario.Name
+        const ltreePath = `${safeDomain.replace(/-/g, '_')}.${safeScenario.replace(/-/g, '_')}.${safeName.replace(/-/g, '_')}`;
+        
+        const { data: repoData, error: repoError } = await supabase
+          .from('prompt_repos')
+          .insert({
+            name: body.name.trim(),
+            description: body.description?.trim(),
+            path: ltreePath,
+            domain: body.domain, 
+            scenario: body.scenario,
+            visibility: body.visibility ?? 'private',
+            owner_id: user.id
+          })
+          .select('id')
+          .single();
+
+        if (repoError) {
+          console.error('DB Sync: Failed to insert repo', repoError);
+          // Don't fail the request, file is created
+        } else if (repoData) {
+          // 2. Insert Prompt Version (Initial)
+          await supabase
+            .from('prompts')
+            .insert({
+              repo_id: repoData.id,
+              title: body.name.trim(),
+              content: body.mainPrompt,
+              main_prompt_path: `${relativePath}/main.prompt`,
+              context_md_path: body.context ? `${relativePath}/context.md` : null,
+              config_yaml_path: `${relativePath}/config.yaml`,
+              summary: body.description?.trim(),
+              tags: tagsArray,
+              version: '1.0.0'
+            });
+        }
+      }
+    } catch (dbError) {
+      console.error('DB Sync: Unexpected error', dbError);
+    }
+    // ---------------------------------------------------------
 
     return NextResponse.json(
       { ok: true, path: `/${relativePath}` },

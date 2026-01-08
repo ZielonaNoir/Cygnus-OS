@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { TreeView, TreeNode } from '@/app/components/ui/tree-view';
-import { CommandPalette, CommandItem } from '@/app/components/ui/command-palette';
+// import { CommandPalette, CommandItem } from '@/app/components/ui/command-palette';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Icon } from '@/app/components/Icon';
 import { AgentSummaryPopup } from '@/app/components/prompts/AgentSummaryPopup';
@@ -175,22 +175,22 @@ export default function PromptsPage() {
     setSelectedScenario('');
   }, [selectedDomain]);
 
-  const [commandItems] = React.useState<CommandItem[]>([
-    {
-      id: 'search-prompt',
-      title: '搜索 Prompt',
-      description: '在 PromptHub 中搜索',
-      icon: 'mdi:magnify',
-      action: () => console.log('Search prompt'),
-    },
-    {
-      id: 'new-prompt',
-      title: '新建 Prompt',
-      description: '创建一个新的 Prompt Repo',
-      icon: 'mdi:plus-circle',
-      action: () => router.push('/prompts/new'),
-    },
-  ]);
+//   const [commandItems] = React.useState<CommandItem[]>([
+//     {
+//       id: 'search-prompt',
+//       title: '搜索 Prompt',
+//       description: '在 PromptHub 中搜索',
+//       icon: 'mdi:magnify',
+//       action: () => console.log('Search prompt'),
+//     },
+//     {
+//       id: 'new-prompt',
+//       title: '新建 Prompt',
+//       description: '创建一个新的 Prompt Repo',
+//       icon: 'mdi:plus-circle',
+//       action: () => router.push('/prompts/new'),
+//     },
+//   ]);
 
   const collectLeafNodes = React.useCallback((node: TreeNode): TreeNode[] => {
     if (!node.children || node.children.length === 0) return [node];
@@ -255,8 +255,8 @@ export default function PromptsPage() {
 
   return (
     <div className="flex h-full bg-background">
-      {/* Command Palette */}
-      <CommandPalette items={commandItems} />
+      {/* Command Palette Removed - Used GlobalSearch instead */}
+      {/* <CommandPalette items={commandItems} /> */}
 
       {/* Left Sidebar - Tree View */}
       <aside className="w-64 border-r border-border/50 bg-card/50 backdrop-blur-sm p-4">

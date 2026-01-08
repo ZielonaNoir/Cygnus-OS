@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Button } from '../ui/button';
-import { Icon } from '../Icon';
 import { cn } from '@/app/lib/utils';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -94,7 +93,11 @@ export function PWARegister() {
         'flex items-center gap-4'
       )}
     >
-      <Icon icon="mdi:download" className="h-6 w-6 text-primary" />
+      <img 
+        src="/icons/icon-192x192.png" 
+        alt="Cygnus-OS" 
+        className="h-12 w-12 rounded-2xl shadow-sm" 
+      />
       <div className="flex-1">
         <p className="text-sm font-medium text-foreground">安装 Cygnus-OS</p>
         <p className="text-xs text-muted-foreground">

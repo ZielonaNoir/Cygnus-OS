@@ -35,6 +35,8 @@ export const viewport: Viewport = {
   themeColor: "#f59e0b",
 };
 
+import { GlobalSearch } from "./components/GlobalSearch";
+
 export default function RootLayout({
   children,
 }: {
@@ -51,6 +53,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <GlobalSearch />
           {children}
           <Toaster position="top-center" />
           <PWARegister />
