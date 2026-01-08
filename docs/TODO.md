@@ -285,9 +285,9 @@
 - ✅ 创建 Web App Manifest (`public/manifest.json`)
 - ✅ 配置 Service Worker (`public/sw.js`)
 - ✅ 实现离线缓存策略
-- ✅ 添加应用图标和启动画面（艺术风格）
+- ✅ 添加应用图标和启动画面（艺术风格 - Rounded Logo Updated）
 - ⬜ 实现推送通知支持
-- ✅ 添加"添加到主屏幕"提示
+- ✅ 添加"添加到主屏幕"提示 (Enhanced UI)
 - ✅ 优化离线体验（离线页面、缓存策略）
 
 ### 32. 用户体验优化
