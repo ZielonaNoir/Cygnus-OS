@@ -42,7 +42,16 @@ export async function POST(request: NextRequest) {
                 .eq('id', resourceId)
                 .single();
 
-            if (error || !prompt || (prompt.prompt_repos as { owner_id: string }).owner_id !== user.id) {
+            if (error || !prompt) {
+                return NextResponse.json({ error: 'Prompt not found or access denied' }, { status: 403 });
+            }
+
+            // prompt_repos is an array from the join, get the first element
+            const promptRepo = Array.isArray(prompt.prompt_repos) 
+                ? prompt.prompt_repos[0] 
+                : prompt.prompt_repos;
+            
+            if (!promptRepo || (promptRepo as { owner_id: string | null }).owner_id !== user.id) {
                 return NextResponse.json({ error: 'Prompt not found or access denied' }, { status: 403 });
             }
         }
