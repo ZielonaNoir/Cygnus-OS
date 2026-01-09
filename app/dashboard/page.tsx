@@ -3,6 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server'
 import { Suspense } from 'react'
 import { Progress } from '@/app/components/ui/progress'
+import Link from 'next/link'
 import {
   Card,
   CardContent,
@@ -192,48 +193,50 @@ export default async function DashboardPage({
                 {/* 项目卡片网格 */}
                 <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {projects.map((p) => (
-                    <Card key={p.id} className="cursor-pointer hover:scale-[1.02] transition-transform">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{p.name}</CardTitle>
-                            <CardDescription className="mt-1 line-clamp-2">
-                              {p.description ?? '暂无描述'}
-                            </CardDescription>
-                          </div>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${p.status === 'completed'
-                              ? 'bg-green-500/20 text-green-400'
-                              : p.status === 'in_progress'
-                                ? 'bg-primary/20 text-primary'
-                                : 'bg-muted text-muted-foreground'
-                              }`}
-                          >
-                            {p.status}
-                          </span>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                              <span>进度</span>
-                              <span className="font-medium">{p.progress}%</span>
+                    <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="block h-full">
+                      <Card className="cursor-pointer hover:scale-[1.02] transition-transform h-full hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30">
+                        <CardHeader>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg group-hover:text-primary transition-colors">{p.name}</CardTitle>
+                              <CardDescription className="mt-1 line-clamp-2">
+                                {p.description ?? '暂无描述'}
+                              </CardDescription>
                             </div>
-                            <Progress value={p.progress} />
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${p.status === 'completed'
+                                ? 'bg-green-500/20 text-green-400'
+                                : p.status === 'in_progress'
+                                  ? 'bg-primary/20 text-primary'
+                                  : 'bg-muted text-muted-foreground'
+                                }`}
+                            >
+                              {p.status}
+                            </span>
                           </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">健康度</span>
-                            <span className="font-medium text-foreground">{p.health_score}</span>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                                <span>进度</span>
+                                <span className="font-medium">{p.progress}%</span>
+                              </div>
+                              <Progress value={p.progress} />
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">健康度</span>
+                              <span className="font-medium text-foreground">{p.health_score}</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {p.last_sync
+                                ? new Date(p.last_sync as unknown as string).toLocaleString('zh-CN')
+                                : '未同步'}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {p.last_sync
-                              ? new Date(p.last_sync as unknown as string).toLocaleString('zh-CN')
-                              : '未同步'}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </>
