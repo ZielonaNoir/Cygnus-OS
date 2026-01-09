@@ -316,3 +316,206 @@ export async function listScenarios(domain: string, token?: string | null): Prom
     const scenarios = [...new Set((data || []).map((r) => r.scenario))];
     return scenarios.sort();
 }
+
+/**
+ * 创建新 Prompt 资产 (需认证)
+ */
+export async function createSkill(
+    token: string,
+    data: {
+        domain: string;
+        scenario: string;
+        name: string;
+        title: string;
+        content: string;
+        description?: string;
+        summary?: string;
+        tags?: string[];
+        context?: string;
+        visibility?: 'public' | 'private';
+    }
+): Promise<{ success: boolean; id?: string; error?: string }> {
+    const supabase = getClient(token);
+
+    // 1. 获取用户信息 (用于设置 owner_id - 虽然 RLS 会自动处理，但显式设置更好)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "未认证用户" };
+
+    // 2. 创建 Prompt Repo
+    const path = `${data.domain}.${data.scenario}.${data.name}`; // LTree format
+    const { data: repo, error: repoError } = await supabase
+        .from('prompt_repos')
+        .insert({
+            name: data.name,
+            description: data.description,
+            domain: data.domain,
+            scenario: data.scenario,
+            path: path,
+            visibility: data.visibility || 'private',
+            owner_id: user.id
+        })
+        .select()
+        .single();
+
+    if (repoError) {
+        return { success: false, error: `Repo creation failed: ${repoError.message}` };
+    }
+
+    // 3. 创建 Prompt Content
+    const { data: prompt, error: promptError } = await supabase
+        .from('prompts')
+        .insert({
+            repo_id: repo.id,
+            title: data.title,
+            content: data.content,
+            summary: data.summary,
+            tags: data.tags || [],
+            version: '1.0.0',
+            main_prompt_path: 'main.prompt', // Placeholder
+        })
+        .select()
+        .single();
+
+    if (promptError) {
+        // 回滚: 删除 repo (Best effort)
+        await supabase.from('prompt_repos').delete().eq('id', repo.id);
+        return { success: false, error: `Prompt creation failed: ${promptError.message}` };
+    }
+
+    // 4. 创建 Metadata (Context)
+    if (data.context) {
+        await supabase.from('prompt_metadata').insert({
+            prompt_id: prompt.id,
+            ai_summary: data.context
+        });
+    }
+
+    // 5. 创建 Version 0
+    await supabase.from('prompt_versions').insert({
+        prompt_id: prompt.id,
+        version: '1.0.0',
+        content: data.content,
+        created_by: user.id
+    });
+
+    return { success: true, id: repo.id };
+}
+
+/**
+ * 更新 Prompt 资产 (需认证 + RLS)
+ */
+export async function updateSkill(
+    token: string,
+    id: string,
+    data: {
+        content?: string;
+        title?: string;
+        description?: string;
+        tags?: string[];
+        context?: string;
+        summary?: string;
+    }
+): Promise<{ success: boolean; error?: string }> {
+    const supabase = getClient(token);
+
+    // 1. 获取关联 Prompt ID (RLS 确保只能查到有权限的)
+    const { data: existingPrompt, error: fetchError } = await supabase
+       .from('prompts')
+       .select('id, version, content')
+       .eq('repo_id', id)
+       .single();
+    
+    // 如果查不到，说明不存在或者无权访问
+    if (fetchError || !existingPrompt) {
+        return { success: false, error: "资产不存在或无权访问" };
+    }
+
+    // 2. 更新 Repo 信息 (Description)
+    if (data.description) {
+        await supabase
+            .from('prompt_repos')
+            .update({ description: data.description })
+            .eq('id', id);
+    }
+
+    // 3. 更新 Prompt 内容
+    const updatePayload: Record<string, any> = {};
+    if (data.content) updatePayload.content = data.content;
+    if (data.title) updatePayload.title = data.title;
+    if (data.tags) updatePayload.tags = data.tags;
+    if (data.summary) updatePayload.summary = data.summary;
+
+    if (Object.keys(updatePayload).length > 0) {
+        // 增加版本号逻辑 (简单 +1 patch)
+        const [major, minor, patch] = existingPrompt.version.split('.').map(Number);
+        const newVersion = `${major}.${minor}.${patch + 1}`;
+        updatePayload.version = newVersion;
+
+        const { error: updateError } = await supabase
+            .from('prompts')
+            .update(updatePayload)
+            .eq('id', existingPrompt.id);
+
+        if (updateError) return { success: false, error: updateError.message };
+
+        // 创建新版本快照
+        if (data.content) {
+             const { data: { user } } = await supabase.auth.getUser();
+             await supabase.from('prompt_versions').insert({
+                prompt_id: existingPrompt.id,
+                version: newVersion,
+                content: data.content,
+                created_by: user?.id
+            });
+        }
+    }
+
+    // 4. 更新 Metadata (Context)
+    if (data.context) {
+        // Upsert metadata
+        const { error: metaError } = await supabase
+            .from('prompt_metadata')
+            .upsert({ 
+                prompt_id: existingPrompt.id, 
+                ai_summary: data.context 
+            }, { onConflict: 'prompt_id' });
+            
+        if (metaError) console.error("Metadata update failed", metaError);
+    }
+
+    return { success: true };
+}
+
+/**
+ * 删除 Prompt 资产 (需认证 + RLS)
+ */
+export async function deleteSkill(token: string, id: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = getClient(token);
+
+    // RLS 会阻止删除非 Owner 的数据
+    // 由于有外键 Cascade (假设 DB 定义了，或者手动清理)
+    // 根据之前的 Migration，没有明确定义 ON DELETE CASCADE，所以需要手动清理关联表
+    // 或者 Supabase Client 尝试删除 Repo，如果没有 Cascade 可能会报错
+
+    // 先查询 prompt_id
+    const { data: prompt } = await supabase.from('prompts').select('id').eq('repo_id', id).single();
+    
+    if (prompt) {
+        // 删除依赖项
+        await supabase.from('prompt_metadata').delete().eq('prompt_id', prompt.id);
+        await supabase.from('prompt_versions').delete().eq('prompt_id', prompt.id);
+        await supabase.from('prompts').delete().eq('id', prompt.id); // 删除 Prompt
+    }
+
+    // 删除 Repo
+    const { error } = await supabase
+        .from('prompt_repos')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        return { success: false, error: `Delete failed: ${error.message}` };
+    }
+
+    return { success: true };
+}

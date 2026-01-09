@@ -133,6 +133,52 @@ export const AVAILABLE_TOOLS: MCPTool[] = [
         }
     },
     {
+        name: "prompt_create",
+        description: "Create a new private prompt asset. The prompt will belong to the authenticated user.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                domain: { type: "string", description: "Category domain (e.g., 'Coding', 'Writing')" },
+                scenario: { type: "string", description: "Specific scenario (e.g., 'React', 'FeatureSpec')" },
+                name: { type: "string", description: "Unique name identifier (slug)" },
+                title: { type: "string", description: "Human readable title" },
+                content: { type: "string", description: "The actual prompt content (Markdown)" },
+                description: { type: "string", description: "Short description" },
+                tags: { type: "array", items: { type: "string" }, description: "Tags list" },
+                context: { type: "string", description: "Additional context or AI summary" },
+                visibility: { type: "string", enum: ["private", "public"], description: "Default is private" }
+            },
+            required: ["domain", "scenario", "name", "title", "content"]
+        }
+    },
+    {
+        name: "prompt_update",
+        description: "Update an existing prompt asset. Only owners can update their prompts.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                id: { type: "string", description: "The UUID of the prompt repo (not the prompt table ID)" },
+                content: { type: "string" },
+                title: { type: "string" },
+                description: { type: "string" },
+                tags: { type: "array", items: { type: "string" } },
+                context: { type: "string" }
+            },
+            required: ["id"]
+        }
+    },
+    {
+        name: "prompt_delete",
+        description: "Permanently delete a prompt asset and all its versions. Only owners can delete.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                id: { type: "string", description: "The UUID of the prompt repo to delete" }
+            },
+            required: ["id"]
+        }
+    },
+    {
         name: "get_logs",
         description: "Retrieve recent system logs for debugging and observability.",
         inputSchema: {
@@ -165,6 +211,7 @@ export async function executeTool(
     }
 
     const projects = await import('./projects');
+    const skills = await import('./skills');
 
     switch (toolName) {
         case "project_update":
@@ -200,7 +247,18 @@ export async function executeTool(
 
         case "prompt_search":
              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-             return await import('./skills').then(m => m.searchSkills({ ...args, token } as any));
+             return await skills.searchSkills({ ...args, token } as any);
+        
+        case "prompt_create":
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             return await skills.createSkill(token, args as any);
+
+        case "prompt_update":
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             return await skills.updateSkill(token, args.id as string, args as any);
+
+        case "prompt_delete":
+             return await skills.deleteSkill(token, args.id as string);
 
         case "get_logs":
              // eslint-disable-next-line @typescript-eslint/no-explicit-any
