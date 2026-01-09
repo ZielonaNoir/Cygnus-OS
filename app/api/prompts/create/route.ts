@@ -37,104 +37,113 @@ export async function POST(request: Request) {
     const safeDomain = sanitizeSegment(body.domain);
     const safeScenario = sanitizeSegment(body.scenario);
 
-    const baseDir = path.join(process.cwd(), 'data', 'prompts');
-    const targetDir = path.join(baseDir, safeDomain, safeScenario, safeName);
+    // ---------------------------------------------------------
+    // DB Primary: Insert into Supabase
+    // ---------------------------------------------------------
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    await fs.mkdir(targetDir, { recursive: true });
-
-    // Write main.prompt
-    await fs.writeFile(path.join(targetDir, 'main.prompt'), body.mainPrompt, 'utf8');
-
-    // Optional context.md
-    if (typeof body.context === 'string' && body.context.trim().length > 0) {
-      await fs.writeFile(path.join(targetDir, 'context.md'), body.context, 'utf8');
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // config.yaml (minimal)
+    // path needs to be ltree compatible
+    const ltreePath = `${safeDomain.replace(/-/g, '_')}.${safeScenario.replace(/-/g, '_')}.${safeName.replace(/-/g, '_')}`;
+    
+    // 1. Insert Repo
+    const { data: repoData, error: repoError } = await supabase
+      .from('prompt_repos')
+      .insert({
+        name: body.name.trim(),
+        description: body.description?.trim(),
+        path: ltreePath,
+        domain: body.domain, 
+        scenario: body.scenario,
+        visibility: body.visibility ?? 'private',
+        owner_id: user.id
+      })
+      .select('id')
+      .single();
+
+    if (repoError) {
+      console.error('DB: Failed to insert repo', repoError);
+      return NextResponse.json({ ok: false, error: repoError.message }, { status: 400 });
+    }
+
+    if (!repoData) {
+      return NextResponse.json({ ok: false, error: 'Failed to create repo data' }, { status: 500 });
+    }
+
+    // 2. Insert Prompt Version (Initial)
+    // Construct virtual paths for DB storage (legacy compatibility)
+    const relativePath = `data/prompts/${safeDomain}/${safeScenario}/${safeName}`;
     const tagsArray: string[] = Array.isArray(body.tags)
       ? body.tags
       : typeof body.tags === 'string'
-      ? body.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean)
+      ? body.tags.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const configYaml =
-      `version: 1\n` +
-      `name: "${safeName}"\n` +
-      `domain: "${safeDomain}"\n` +
-      `scenario: "${safeScenario}"\n` +
-      `visibility: "${body.visibility ?? 'private'}"\n` +
-      (typeof body.description === 'string' && body.description.trim().length > 0
-        ? `description: "${body.description.replace(/"/g, '\\"')}"\n`
-        : '') +
-      `tags:\n` +
-      (tagsArray.length > 0 ? tagsArray.map((t) => `  - "${t.replace(/"/g, '\\"')}"`).join('\n') + '\n' : '');
+    const { error: promptError } = await supabase
+      .from('prompts')
+      .insert({
+        repo_id: repoData.id,
+        title: body.name.trim(),
+        content: body.mainPrompt,
+        context: body.context || null,
+        main_prompt_path: `${relativePath}/main.prompt`,
+        context_md_path: body.context ? `${relativePath}/context.md` : null,
+        config_yaml_path: `${relativePath}/config.yaml`,
+        summary: body.description?.trim(),
+        tags: tagsArray,
+        version: '1.0.0'
+      });
 
-    await fs.writeFile(path.join(targetDir, 'config.yaml'), configYaml, 'utf8');
-
-    const relativePath = path
-      .relative(process.cwd(), targetDir)
-      .split(path.sep)
-      .join('/');
+    if (promptError) {
+       console.error('DB: Failed to insert prompt', promptError);
+       // Rollback repo? For simplicity, we leave it or manual cleanup, but ideally rollback.
+       return NextResponse.json({ ok: false, error: promptError.message }, { status: 400 });
+    }
 
     // ---------------------------------------------------------
-    // DB Sync: Insert into Supabase to ensure immediate visibility
+    // Secondary: Write to local FS (Best Effort / Dev Only)
     // ---------------------------------------------------------
     try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      // Only attempt if we are in an environment where we can write (e.g. dev)
+      // or just try and suppress error
+      const baseDir = path.join(process.cwd(), 'data', 'prompts');
+      const targetDir = path.join(baseDir, safeDomain, safeScenario, safeName);
+      await fs.mkdir(targetDir, { recursive: true });
 
-      if (user) {
-        // 1. Insert or Get Repo
-        // path needs to be ltree compatible (alphanumeric and underscores only, no hyphens)
-        // Domain.Scenario.Name
-        const ltreePath = `${safeDomain.replace(/-/g, '_')}.${safeScenario.replace(/-/g, '_')}.${safeName.replace(/-/g, '_')}`;
-        
-        const { data: repoData, error: repoError } = await supabase
-          .from('prompt_repos')
-          .insert({
-            name: body.name.trim(),
-            description: body.description?.trim(),
-            path: ltreePath,
-            domain: body.domain, 
-            scenario: body.scenario,
-            visibility: body.visibility ?? 'private',
-            owner_id: user.id
-          })
-          .select('id')
-          .single();
+      await fs.writeFile(path.join(targetDir, 'main.prompt'), body.mainPrompt, 'utf8');
 
-        if (repoError) {
-          console.error('DB Sync: Failed to insert repo', repoError);
-          // Don't fail the request, file is created
-        } else if (repoData) {
-          // 2. Insert Prompt Version (Initial)
-          await supabase
-            .from('prompts')
-            .insert({
-              repo_id: repoData.id,
-              title: body.name.trim(),
-              content: body.mainPrompt,
-              main_prompt_path: `${relativePath}/main.prompt`,
-              context_md_path: body.context ? `${relativePath}/context.md` : null,
-              config_yaml_path: `${relativePath}/config.yaml`,
-              summary: body.description?.trim(),
-              tags: tagsArray,
-              version: '1.0.0'
-            });
-        }
+      if (typeof body.context === 'string' && body.context.trim().length > 0) {
+        await fs.writeFile(path.join(targetDir, 'context.md'), body.context, 'utf8');
       }
-    } catch (dbError) {
-      console.error('DB Sync: Unexpected error', dbError);
+
+      // config.yaml construction
+      const configYaml =
+        `version: 1\n` +
+        `name: "${safeName}"\n` +
+        `domain: "${safeDomain}"\n` +
+        `scenario: "${safeScenario}"\n` +
+        `visibility: "${body.visibility ?? 'private'}"\n` +
+        (typeof body.description === 'string' && body.description.trim().length > 0
+          ? `description: "${body.description.replace(/"/g, '\\"')}"\n`
+          : '') +
+        `tags:\n` +
+        (tagsArray.length > 0 ? tagsArray.map((t) => `  - "${t.replace(/"/g, '\\"')}"`).join('\n') + '\n' : '');
+
+      await fs.writeFile(path.join(targetDir, 'config.yaml'), configYaml, 'utf8');
+    } catch (fsError) {
+      console.warn('FS Sync failed (expected in Serverless):', fsError);
+      // Do not fail request
     }
-    // ---------------------------------------------------------
 
     return NextResponse.json(
       { ok: true, path: `/${relativePath}` },
       { status: 201 }
     );
+
   } catch (error) {
     const message = error instanceof Error ? error.message : '未知错误';
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

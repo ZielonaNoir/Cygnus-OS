@@ -47,7 +47,7 @@ export async function generatePDF(options: PDFExportOptions): Promise<Blob> {
 
         // 生成 Blob
         return doc.output('blob');
-    } catch (_error) {
+    } catch {
         throw new Error('jsPDF is not installed. Please install it: npm install jspdf');
     }
 }

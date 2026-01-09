@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import path from 'path';
-import { promises as fs } from 'fs';
 import { createClient } from '@/app/lib/supabase/server';
 
 type PromptItem = {
-  id: string; // domain/scenario/name
+  id: string; // domain/scenario/name (db path format: domain.scenario.name)
   label: string;
   domain: string;
   scenario: string;
@@ -22,76 +20,58 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: '未认证，请先登录' }, { status: 401 });
     }
 
-    // 从文件系统读取所有 Prompt（文件系统即真相）
-    const baseDir = path.join(process.cwd(), 'data', 'prompts');
-    const allItems: PromptItem[] = [];
-
-    async function exists(p: string): Promise<boolean> {
-      try {
-        await fs.access(p);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    async function safeReaddir(dir: string) {
-      try {
-        return await fs.readdir(dir, { withFileTypes: true });
-      } catch {
-        return [];
-      }
-    }
-
-    const domains = await safeReaddir(baseDir);
-    for (const d of domains) {
-      if (!d.isDirectory()) continue;
-      const domain = d.name;
-      const domainDir = path.join(baseDir, domain);
-      const scenarios = await safeReaddir(domainDir);
-      for (const s of scenarios) {
-        if (!s.isDirectory()) continue;
-        const scenario = s.name;
-        const scenarioDir = path.join(domainDir, scenario);
-        const assets = await safeReaddir(scenarioDir);
-        for (const a of assets) {
-          if (!a.isDirectory()) continue;
-          const name = a.name;
-          const assetDir = path.join(scenarioDir, name);
-          const id = [domain, scenario, name].join('/');
-          const hasContext = await exists(path.join(assetDir, 'context.md'));
-          allItems.push({
-            id,
-            label: name,
-            domain,
-            scenario,
-            name,
-            hasContext,
-          });
-        }
-      }
-    }
-
-    // 从 Supabase 查询用户有权限访问的 prompt_repos（RLS 会自动过滤）
-    // 将路径转换为 LTree 格式：Domain/Scenario/Name -> Domain.Scenario.Name
-    const accessiblePaths = new Set<string>();
-    
+    // 从 Supabase 查询用户有权限访问的 prompt_repos
+    // RLS 策略会自动过滤数据
     const { data: repos, error: reposError } = await supabase
       .from('prompt_repos')
-      .select('path, visibility, owner_id')
-      .or(`visibility.eq.public,owner_id.eq.${user.id}`);
+      .select('path, domain, scenario, name, id')
+      .or(`visibility.eq.public,owner_id.eq.${user.id}`); // Double check RLS, but explicit OR is safe
     
-    if (!reposError && repos) {
-      // 将 LTree 路径转换回文件系统路径格式
-      for (const repo of repos) {
-        const fsPath = repo.path.replace(/\./g, '/');
-        accessiblePaths.add(fsPath);
-      }
+    if (reposError) {
+      throw new Error(`Public Repo Query Error: ${reposError.message}`);
     }
 
-    // 过滤：只返回用户有权限访问的 Prompt
-    // 如果 prompt_repo 在数据库中不存在，默认不允许访问（安全策略）
-    const items = allItems.filter(item => accessiblePaths.has(item.id));
+    const items: PromptItem[] = [];
+
+    if (repos && repos.length > 0) {
+       // 为了获取 hasContext，我们需要查询 prompts 表
+       // 我们可以批量查询，或者对于 List 视图暂时设为 false (性能优化)，
+       // 但为了保持兼容性，我们查询最新的 prompt 记录看是否有 context_md_path 或 content
+       
+       const repoIds = repos.map(r => r.id);
+       
+       // 查询关联的 prompts 信息 (只需查是否存在 context)
+       const { data: promptsDetails } = await supabase
+         .from('prompts')
+         .select('repo_id, context_md_path, content')
+         .in('repo_id', repoIds);
+
+       const contextMap = new Map<string, boolean>();
+       if (promptsDetails) {
+         for (const p of promptsDetails) {
+             // 如果有 context_md_path 或者 content 中包含特定的 context 标记 (视业务逻辑而定)
+             // 这里暂时沿用旧逻辑：如果有 context_md_path (虽然现在是 DB 里的字段)
+             if (p.context_md_path || (p.content && p.content.includes('<context>'))) { // 简单的一层判断
+                 contextMap.set(p.repo_id, true);
+             }
+         }
+       }
+
+       for (const repo of repos) {
+          // LTree path format: Domain.Scenario.Name
+          // Client expects: Domain/Scenario/Name
+          const id = repo.path.replace(/\./g, '/'); 
+          
+          items.push({
+            id,
+            label: repo.name,
+            domain: repo.domain,
+            scenario: repo.scenario,
+            name: repo.name,
+            hasContext: contextMap.get(repo.id) || false,
+          });
+       }
+    }
 
     // sort by id for stable order
     items.sort((x, y) => x.id.localeCompare(y.id));

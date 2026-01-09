@@ -8,8 +8,11 @@ const nextConfig: NextConfig = {
         hostname: '**.supabase.co',
       },
       {
-        protocol: 'https',
         hostname: '**.supabase.in',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
       },
     ],
   },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { isSafePath, resolvePromptPath } from '../_utils';
+import { isSafePath } from '../_utils';
 import { createClient } from '@supabase/supabase-js';
 
 // 使用 Service Role Key 以获得写入权限 (API Route 运行在服务器端)
@@ -26,53 +26,60 @@ export async function PUT(request: Request) {
       return NextResponse.json({ ok: false, error: '非法路径' }, { status: 400 });
     }
 
-    const resolvedPath = await resolvePromptPath(body.path);
-    if (!resolvedPath) {
-      return NextResponse.json({ ok: false, error: `未找到名为 ${body.path} 的 Prompt` }, { status: 404 });
+    // --- DB-First Logic ---
+    // 1. Resolve Repo ID from DB (by path or name)
+    let repoData: { id: string; path: string; name: string; domain: string; scenario: string; } | null = null;
+    
+    // Treat as full path (Domain/Scenario/Name) or Name
+    const isFullPath = body.path.includes('/');
+    
+    if (isFullPath) {
+      const ltreePath = body.path.replace(/\//g, '.');
+      const { data } = await supabase
+        .from('prompt_repos')
+        .select('*')
+        .eq('path', ltreePath)
+        .maybeSingle();
+      repoData = data;
+    } else {
+      // Short name match
+      const { data } = await supabase
+        .from('prompt_repos')
+        .select('*')
+        .eq('name', body.path)
+        .maybeSingle(); // Assumes uniqueness or returns one
+      repoData = data;
     }
-    const targetDir: string = resolvedPath; // 类型收窄：确保 targetDir 是 string
 
-    async function writeIfProvided(file: string, content?: string) {
-      if (typeof content === 'string') {
-        await fs.writeFile(path.join(targetDir, file), content, 'utf8');
-      }
+    if (!repoData) {
+       return NextResponse.json({ ok: false, error: `未找到名为 ${body.path} 的 Prompt` }, { status: 404 });
     }
 
-    // 更新 main.prompt
-    await writeIfProvided('main.prompt', body.mainPrompt);
-
-    // 更新/删除 context.md
-    if (body.context === null) {
-      try {
-        await fs.unlink(path.join(targetDir, 'context.md'));
-      } catch {
-        // ignore
-      }
-    } else if (typeof body.context === 'string') {
-      await fs.writeFile(path.join(targetDir, 'context.md'), body.context, 'utf8');
-    }
-
-    // --- Sync to Supabase ---
-    // 1. 获取 Repo ID 和 Prompt ID
-    const ltreePath = body.path.replace(/\//g, '.');
-    const { data: repo } = await supabase
-      .from('prompt_repos')
-      .select('id')
-      .eq('path', ltreePath)
-      .maybeSingle();
-
-    if (repo && body.mainPrompt) {
-      // Update Prompt Content
-      // We first need the Prompt ID
-      const { data: prompt } = await supabase
+    // 2. Fetch Prompt ID
+    const { data: prompt } = await supabase
         .from('prompts')
         .select('id, version')
-        .eq('repo_id', repo.id)
+        .eq('repo_id', repoData.id)
         .maybeSingle();
 
-      if (prompt) {
-        // Fetch the latest version from prompt_versions to determine next version
-        const { data: latestVersion } = await supabase
+    if (!prompt) {
+        return NextResponse.json({ ok: false, error: 'Prompt Record Not Found' }, { status: 404 });
+    }
+
+    // 3. Prepare Updates
+    const updates: {
+        updated_at: string;
+        content?: string;
+        context?: string | null;
+        version?: string;
+    } = {
+        updated_at: new Date().toISOString()
+    };
+    if (body.mainPrompt !== undefined) updates.content = body.mainPrompt;
+    if (body.context !== undefined) updates.context = body.context; // supports null for delete
+    
+    // Determine Version
+    const { data: latestVersion } = await supabase
           .from('prompt_versions')
           .select('version')
           .eq('prompt_id', prompt.id)
@@ -80,40 +87,63 @@ export async function PUT(request: Request) {
           .limit(1)
           .maybeSingle();
 
-        // Import version utility
-        const { incrementPatch } = await import('@/app/lib/versioning/semver');
+    const { incrementPatch } = await import('@/app/lib/versioning/semver');
+    const currentVersion = latestVersion?.version || prompt.version || '1.0.0';
+    const nextVersion = incrementPatch(currentVersion);
+    
+    updates.version = nextVersion;
 
-        // Calculate next version
-        const currentVersion = latestVersion?.version || prompt.version || '1.0.0';
-        const nextVersion = incrementPatch(currentVersion);
+    // 4. Update Prompts Table
+    await supabase.from('prompts').update(updates).eq('id', prompt.id);
 
-        // Update Prompts Table with new version
-        await supabase
-          .from('prompts')
-          .update({
-            content: body.mainPrompt,
-            version: nextVersion,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', prompt.id);
-
-        // Create Version Snapshot with incremented version
+    // 5. Create Version Snapshot
+    // Need to fetch current data if partial update? body.mainPrompt might be incomplete?
+    // Usually the editor sends FULL content. Let's assume body.mainPrompt IS the new full content if provided.
+    // If not provided, we should probably fetch previous content. But typical SAVE sends all.
+    // However, if body.mainPrompt is missing, we shouldn't insert a version with null content?
+    // Let's assume SAVE sends mainPrompt.
+    
+    if (body.mainPrompt) {
         await supabase.from('prompt_versions').insert({
           prompt_id: prompt.id,
           version: nextVersion,
           content: body.mainPrompt,
+          context: body.context || null,
           summary: 'Web Editor Save',
           created_by: null
         });
-      }
     }
 
-    // 可选覆盖 config.yaml（高级用法）
-    if (typeof body.config === 'string') {
-      await fs.writeFile(path.join(targetDir, 'config.yaml'), body.config, 'utf8');
+    // ---------------------------------------------------------
+    // Secondary: Write to Local FS (Best Effort)
+    // ---------------------------------------------------------
+    try {
+        const baseDir = path.join(process.cwd(), 'data', 'prompts');
+        // Reconstruct path from repo info to be safe
+        const targetDir = path.join(baseDir, repoData.domain, repoData.scenario, repoData.name);
+        
+        // Ensure dir exists (it might not on Vercel or if new env)
+        await fs.mkdir(targetDir, { recursive: true });
+
+        if (typeof body.mainPrompt === 'string') {
+             await fs.writeFile(path.join(targetDir, 'main.prompt'), body.mainPrompt, 'utf8');
+        }
+
+        if (body.context === null) {
+          try { await fs.unlink(path.join(targetDir, 'context.md')); } catch {}
+        } else if (typeof body.context === 'string') {
+          await fs.writeFile(path.join(targetDir, 'context.md'), body.context, 'utf8');
+        }
+
+        if (typeof body.config === 'string') {
+           await fs.writeFile(path.join(targetDir, 'config.yaml'), body.config, 'utf8');
+        }
+    } catch (err) {
+        console.warn('FS Update Skipped:', err);
     }
 
     return NextResponse.json({ ok: true });
+
   } catch (error) {
     const message = error instanceof Error ? error.message : '未知错误';
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

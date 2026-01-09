@@ -49,7 +49,7 @@ export async function syncProject(projectId: string) {
   }
 }
 
-export async function startAgent(_projectId: string) {
+export async function startAgent() {
     // Placeholder for Agent Trigger
     // Could eventually call an MCP tool or external API
     return { success: true, message: 'Agent sequence initiated' }

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Button } from '../ui/button';
 import { cn } from '@/app/lib/utils';
 
@@ -93,10 +94,12 @@ export function PWARegister() {
         'flex items-center gap-4'
       )}
     >
-      <img 
+      <Image 
         src="/icons/icon-192x192.png" 
         alt="Cygnus-OS" 
-        className="h-12 w-12 rounded-2xl shadow-sm" 
+        width={48}
+        height={48}
+        className="rounded-2xl shadow-sm" 
       />
       <div className="flex-1">
         <p className="text-sm font-medium text-foreground">安装 Cygnus-OS</p>
@@ -119,4 +122,3 @@ export function PWARegister() {
     </div>
   );
 }
-

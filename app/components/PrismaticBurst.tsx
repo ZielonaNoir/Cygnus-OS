@@ -393,6 +393,7 @@ const PrismaticBurst = ({
       rendererRef.current = null;
       gradTexRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

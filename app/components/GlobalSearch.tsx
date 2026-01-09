@@ -33,7 +33,6 @@ export function GlobalSearch() {
     const [query, setQuery] = React.useState('');
     const [selectedIndex, setSelectedIndex] = React.useState(0);
     const [items, setItems] = React.useState<CommandItem[]>([]);
-    const [isLoading, setIsLoading] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     // Fetch prompts on mount (or when opened to be fresher?)
@@ -42,7 +41,6 @@ export function GlobalSearch() {
     React.useEffect(() => {
         const fetchPrompts = async () => {
             try {
-                setIsLoading(true);
                 const resp = await fetch('/api/prompts/list');
                 const data: ListResponse = await resp.json();
                 if (data.ok) {
@@ -83,8 +81,6 @@ export function GlobalSearch() {
                 }
             } catch (error) {
                 console.error('Failed to fetch prompts for global search', error);
-            } finally {
-                setIsLoading(false);
             }
         };
 

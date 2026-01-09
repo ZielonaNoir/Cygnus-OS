@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "Cygnus-OS | 天鹅座超级个体操作系统",
   description: "专为'一人即组织'设计的开源 AI 并行工程管理系统。Prompt 即资产，并行即进化。",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

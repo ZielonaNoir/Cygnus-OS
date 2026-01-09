@@ -179,7 +179,7 @@ declare module 'next/dynamic' {
   import type { ComponentType } from 'react';
   
   interface DynamicOptions<P = object> {
-    loading?: ComponentType<object>;
+    loading?: ComponentType<P>;
     ssr?: boolean;
   }
   
