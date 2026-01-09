@@ -21,9 +21,13 @@ export function ConnectToCursor() {
                 if (session?.access_token) {
                     setToken(session.access_token);
 
+                    // Determine environment name to prevent collision in Cursor
+                    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    const serverName = isLocal ? "Cygnus-OS (Local)" : "Cygnus-OS (Remote)";
+
                     // Construct MCP Config for SSE
                     const config = {
-                        name: "Cygnus-OS PromptHub",
+                        name: serverName,
                         type: "sse",
                         url: `${window.location.origin}/api/mcp?token=${session.access_token}`
                     };
@@ -32,7 +36,8 @@ export function ConnectToCursor() {
                     const encodedConfig = btoa(JSON.stringify(config));
 
                     // Construct Deep Link for Cursor
-                    const link = `cursor://anysphere.cursor-deeplink/mcp/install?name=Cygnus-OS&config=${encodedConfig}`;
+                    // Use encodeURIComponent for the name to handle spaces/parentheses
+                    const link = `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(serverName)}&config=${encodedConfig}`;
                     setDeepLink(link);
                 }
             } catch (error) {
